@@ -3,8 +3,14 @@ project(Vulkan)
 
 set(CMAKE_CXX_STANDARD 23)
 
+# If no build type provided, assume Release mode
 if(NOT CMAKE_BUILD_TYPE)
 	set(CMAKE_BUILD_TYPE Release)
+endif()
+
+# If not Debug mode, set the NDEBUG macro
+if (NOT CMAKE_BUILD_TYPE MATCHES Debug)
+	add_definitions(-DNDEBUG)
 endif()
 
 set(CMAKE_CXX_FLAGS_RELEASE "-Os")
