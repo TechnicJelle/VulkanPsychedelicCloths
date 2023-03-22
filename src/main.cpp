@@ -316,7 +316,10 @@ private:
 				  VkDebugUtilsMessageTypeFlagsEXT messageType,
 				  const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 				  void* pUserData) {
-		std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+		if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
+			std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+		else
+			std::cout << "validation layer: " << pCallbackData->pMessage << std::endl;
 
 		return VK_FALSE;
 	}
