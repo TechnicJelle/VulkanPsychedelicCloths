@@ -204,6 +204,9 @@ private:
 
 		for (const auto& potentialPhysicalDevice : devices) {
 			if (isDeviceSuitable(potentialPhysicalDevice)) {
+				VkPhysicalDeviceProperties properties;
+				vkGetPhysicalDeviceProperties(potentialPhysicalDevice, &properties);
+				printf("Found suitable GPU: %s\n", properties.deviceName);
 				physicalDevice = potentialPhysicalDevice;
 				break;
 			}
