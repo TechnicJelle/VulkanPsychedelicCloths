@@ -1,3 +1,8 @@
+#pragma clang diagnostic push
+// To ignore the warnings about the enableValidationLayers variable:
+#pragma ide diagnostic ignored "UnreachableCode"
+#pragma ide diagnostic ignored "Simplify"
+
 #define GLFW_INCLUDE_VULKAN
 
 #include <GLFW/glfw3.h>
@@ -231,26 +236,26 @@ private:
 		vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
 	}
 
-	static bool isDeviceSuitable(VkPhysicalDevice device) {
+	bool isDeviceSuitable(VkPhysicalDevice potentialPhysicalDevice) {
 		VkPhysicalDeviceProperties deviceProperties;
-		vkGetPhysicalDeviceProperties(device, &deviceProperties);
+		vkGetPhysicalDeviceProperties(potentialPhysicalDevice, &deviceProperties);
 
 		VkPhysicalDeviceFeatures deviceFeatures;
-		vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+		vkGetPhysicalDeviceFeatures(potentialPhysicalDevice, &deviceFeatures);
 
-		QueueFamilyIndices indices = findQueueFamilies(device);
+		QueueFamilyIndices indices = findQueueFamilies(potentialPhysicalDevice);
 
 		return deviceFeatures.geometryShader && indices.isComplete();
 	}
 
-	static QueueFamilyIndices findQueueFamilies(VkPhysicalDevice device) {
+	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice potentialPhysicalDevice) {
 		QueueFamilyIndices indices;
 
 		uint32_t queueFamilyCount;
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, nullptr);
+		vkGetPhysicalDeviceQueueFamilyProperties(potentialPhysicalDevice, &queueFamilyCount, nullptr);
 
 		std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-		vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
+		vkGetPhysicalDeviceQueueFamilyProperties(potentialPhysicalDevice, &queueFamilyCount, queueFamilies.data());
 
 		int i = 0;
 		for (const auto& queueFamily : queueFamilies) {
@@ -329,3 +334,5 @@ int main() {
 
 	return EXIT_SUCCESS;
 }
+
+#pragma clang diagnostic pop
