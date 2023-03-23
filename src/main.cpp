@@ -21,11 +21,11 @@ const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
 const std::vector<const char*> validationLayers = {
-		"VK_LAYER_KHRONOS_validation",
+	"VK_LAYER_KHRONOS_validation",
 };
 
 const std::vector<const char*> deviceExtensions = {
-		VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
 #ifdef NDEBUG
@@ -39,7 +39,7 @@ VkResult CreateDebugUtilsMessengerEXT(VkInstance instance,
 									  const VkAllocationCallbacks* pAllocator,
 									  VkDebugUtilsMessengerEXT* pDebugMessenger) {
 	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)
-			vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+		vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 	if (func != nullptr) {
 		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
 	} else {
@@ -51,7 +51,7 @@ void DestroyDebugUtilsMessengerEXT(VkInstance instance,
 								   VkDebugUtilsMessengerEXT debugMessenger,
 								   const VkAllocationCallbacks* pAllocator) {
 	auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)
-			vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+		vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
 	if (func != nullptr) {
 		func(instance, debugMessenger, pAllocator);
 	}
@@ -98,6 +98,8 @@ private:
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
 
+	std::vector<VkImageView> swapChainImageViews;
+
 	void initWindow() {
 		glfwInit();
 
@@ -107,6 +109,37 @@ private:
 		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 	}
 
+	void createImageViews() {
+		swapChainImageViews.resize(swapChainImages.size());
+
+		for (int i = 0; i < swapChainImages.size(); ++i) {
+			VkImageViewCreateInfo createInfo {
+				.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+				.image = swapChainImages[i],
+				.viewType = VK_IMAGE_VIEW_TYPE_2D,
+				.format = swapChainImageFormat,
+				.components = { //how to map rgba to rgba
+					.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+					.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+				},
+				.subresourceRange = { //what will we use this image for
+					.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+					.baseMipLevel = 0,
+					.levelCount = 1,
+					.baseArrayLayer = 0,
+					.layerCount = 1,
+				},
+			};
+
+			if (vkCreateImageView(device, &createInfo, nullptr, &swapChainImageViews[i]) != VK_SUCCESS) {
+				throw std::runtime_error("failed to create image views!");
+			}
+		}
+
+	}
+
 	void initVulkan() {
 		createInstance();
 		setupDebugMessenger();
@@ -114,6 +147,7 @@ private:
 		pickPhysicalDevice();
 		createLogicalDevice();
 		createSwapChain();
+		createImageViews();
 	}
 
 	void mainLoop() {
@@ -123,6 +157,10 @@ private:
 	}
 
 	void cleanup() {
+		for (auto imageView : swapChainImageViews) {
+			vkDestroyImageView(device, imageView, nullptr);
+		}
+
 		vkDestroySwapchainKHR(device, swapChain, nullptr);
 
 		vkDestroyDevice(device, nullptr);
@@ -145,25 +183,25 @@ private:
 			throw std::runtime_error("validation layers requested, but not available!");
 		}
 
-		VkApplicationInfo appInfo{
-				.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-				.pApplicationName = "Hello Triangle",
-				.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
-				.pEngineName = "No Engine",
-				.engineVersion = VK_MAKE_VERSION(1, 0, 0),
-				.apiVersion = VK_API_VERSION_1_0,
+		VkApplicationInfo appInfo {
+			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+			.pApplicationName = "Hello Triangle",
+			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
+			.pEngineName = "No Engine",
+			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
+			.apiVersion = VK_API_VERSION_1_0,
 		};
 
-		VkInstanceCreateInfo createInfo{
-				.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-				.pApplicationInfo = &appInfo,
+		VkInstanceCreateInfo createInfo {
+			.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+			.pApplicationInfo = &appInfo,
 		};
 
 		auto extensions = getRequiredExtensions();
 		createInfo.enabledExtensionCount = extensions.size();
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
-		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{};
+		VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo {};
 		if (enableValidationLayers) {
 			createInfo.enabledLayerCount = validationLayers.size();
 			createInfo.ppEnabledLayerNames = validationLayers.data();
@@ -183,14 +221,14 @@ private:
 
 	static void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo) {
 		createInfo = {
-				.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-				.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-								   VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-								   VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-				.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-							   VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-							   VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-				.pfnUserCallback = debugCallback,
+			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+			.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+							   VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+							   VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+			.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+						   VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+						   VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+			.pfnUserCallback = debugCallback,
 		};
 	}
 
@@ -245,24 +283,24 @@ private:
 
 		float queuePriority = 1.0f;
 		for (uint32_t queueFamily : uniqueQueueFamilies) {
-			VkDeviceQueueCreateInfo queueCreateInfo{
-					.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-					.queueFamilyIndex = queueFamily,
-					.queueCount = 1,
-					.pQueuePriorities = &queuePriority,
+			VkDeviceQueueCreateInfo queueCreateInfo {
+				.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+				.queueFamilyIndex = queueFamily,
+				.queueCount = 1,
+				.pQueuePriorities = &queuePriority,
 			};
 			queueCreateInfos.push_back(queueCreateInfo);
 		}
 
-		VkPhysicalDeviceFeatures deviceFeatures{};
+		VkPhysicalDeviceFeatures deviceFeatures {};
 
-		VkDeviceCreateInfo createInfo{
-				.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-				.queueCreateInfoCount = (uint32_t) queueCreateInfos.size(),
-				.pQueueCreateInfos = queueCreateInfos.data(),
-				.enabledExtensionCount = (uint32_t) deviceExtensions.size(),
-				.ppEnabledExtensionNames = deviceExtensions.data(),
-				.pEnabledFeatures = &deviceFeatures,
+		VkDeviceCreateInfo createInfo {
+			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+			.queueCreateInfoCount = (uint32_t) queueCreateInfos.size(),
+			.pQueueCreateInfos = queueCreateInfos.data(),
+			.enabledExtensionCount = (uint32_t) deviceExtensions.size(),
+			.ppEnabledExtensionNames = deviceExtensions.data(),
+			.pEnabledFeatures = &deviceFeatures,
 		};
 
 		if (enableValidationLayers) {
@@ -292,20 +330,20 @@ private:
 			imageCount = swapChainSupport.capabilities.maxImageCount;
 		}
 
-		VkSwapchainCreateInfoKHR createInfo{
-				.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-				.surface = surface,
-				.minImageCount = imageCount,
-				.imageFormat = surfaceFormat.format,
-				.imageColorSpace = surfaceFormat.colorSpace,
-				.imageExtent = extent,
-				.imageArrayLayers = 1, //only not 1 if it's a stereoscopic 3D application
-				.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-				.preTransform = swapChainSupport.capabilities.currentTransform, //we don't want to transform the image, so we just use the current transform
-				.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, //we don't want to blend the window with other windows in the window system, so we use VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR
-				.presentMode = presentMode,
-				.clipped = VK_TRUE, //we don't care about the color of pixels that are obscured, because another window is in front of them, for example
-				.oldSwapchain = VK_NULL_HANDLE //used to recreate the swap chain, but we don't need to do that yet (resizing windows, for example)
+		VkSwapchainCreateInfoKHR createInfo {
+			.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+			.surface = surface,
+			.minImageCount = imageCount,
+			.imageFormat = surfaceFormat.format,
+			.imageColorSpace = surfaceFormat.colorSpace,
+			.imageExtent = extent,
+			.imageArrayLayers = 1, //only not 1 if it's a stereoscopic 3D application
+			.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+			.preTransform = swapChainSupport.capabilities.currentTransform, //we don't want to transform the image, so we just use the current transform
+			.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, //we don't want to blend the window with other windows in the window system, so we use VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR
+			.presentMode = presentMode,
+			.clipped = VK_TRUE, //we don't care about the color of pixels that are obscured, because another window is in front of them, for example
+			.oldSwapchain = VK_NULL_HANDLE //used to recreate the swap chain, but we don't need to do that yet (resizing windows, for example)
 		};
 
 		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
@@ -364,8 +402,8 @@ private:
 			glfwGetFramebufferSize(window, &width, &height);
 
 			VkExtent2D actualExtent = {
-					.width = (uint32_t) width,
-					.height = (uint32_t) height,
+				.width = (uint32_t) width,
+				.height = (uint32_t) height,
 			};
 
 			//clamp between min and max extents that are supported by the implementation
@@ -527,7 +565,7 @@ private:
 };
 
 int main() {
-	HelloTriangleApplication app{};
+	HelloTriangleApplication app {};
 
 	try {
 		app.run();
