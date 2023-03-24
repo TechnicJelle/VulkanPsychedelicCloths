@@ -119,6 +119,7 @@ private:
 	VkExtent2D swapChainExtent;
 	std::vector<VkImageView> swapChainImageViews;
 
+	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
 
 	void initWindow() {
@@ -138,6 +139,7 @@ private:
 		createLogicalDevice();
 		createSwapChain();
 		createImageViews();
+		createRenderPass();
 		createGraphicsPipeline();
 	}
 
@@ -149,6 +151,7 @@ private:
 
 	void cleanup() {
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+		vkDestroyRenderPass(device, renderPass, nullptr);
 
 		for (auto imageView : swapChainImageViews) {
 			vkDestroyImageView(device, imageView, nullptr);
@@ -394,6 +397,42 @@ private:
 		}
 	}
 
+	void createRenderPass() {
+		VkAttachmentDescription colorAttachment {
+			.format = swapChainImageFormat,
+			.samples = VK_SAMPLE_COUNT_1_BIT,
+			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR, //clear the framebuffer to a constant at the start
+			.storeOp = VK_ATTACHMENT_STORE_OP_STORE, //rendered contents will be stored in memory and can be read later
+			.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE, //we don't care about stencil
+			.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE, //we don't care about stencil
+			.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED, //we don't care what the image was like previously
+			.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //transition to present when the render pass is finished
+		};
+
+		VkAttachmentReference colorAttachmentRef {
+			.attachment = 0, //fragment shader output location
+			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+		};
+
+		VkSubpassDescription subpass {
+			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+			.colorAttachmentCount = 1,
+			.pColorAttachments = &colorAttachmentRef,
+		};
+
+		VkRenderPassCreateInfo renderPassInfo {
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+			.attachmentCount = 1,
+			.pAttachments = &colorAttachment,
+			.subpassCount = 1,
+			.pSubpasses = &subpass,
+		};
+
+		if (vkCreateRenderPass(device, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create render pass!");
+		}
+	}
+
 	void createGraphicsPipeline() {
 		auto vertShaderCode = readFile("shaders/vert.spv");
 		auto fragShaderCode = readFile("shaders/frag.spv");
@@ -489,7 +528,7 @@ private:
 			//we don't have any uniform values yet
 		};
 
-		if(vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create pipeline layout!");
 		}
 
