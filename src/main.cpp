@@ -118,11 +118,14 @@ private:
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
 	std::vector<VkImageView> swapChainImageViews;
-	std::vector<VkFramebuffer> swapChainFrameBuffers;
+	std::vector<VkFramebuffer> swapChainFramebuffers;
 
 	VkRenderPass renderPass;
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
+
+	VkCommandPool commandPool;
+	VkCommandBuffer commandBuffer;
 
 	void initWindow() {
 		glfwInit();
@@ -144,6 +147,8 @@ private:
 		createRenderPass();
 		createGraphicsPipeline();
 		createFramebuffers();
+		createCommandPool();
+		createCommandBuffer();
 	}
 
 	void mainLoop() {
@@ -153,7 +158,9 @@ private:
 	}
 
 	void cleanup() {
-		for (auto framebuffer : swapChainFrameBuffers) {
+		vkDestroyCommandPool(device, commandPool, nullptr);
+
+		for (auto framebuffer : swapChainFramebuffers) {
 			vkDestroyFramebuffer(device, framebuffer, nullptr);
 		}
 
@@ -346,7 +353,7 @@ private:
 			.preTransform = swapChainSupport.capabilities.currentTransform, //we don't want to transform the image, so we just use the current transform
 			.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, //we don't want to blend the window with other windows in the window system, so we use VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR
 			.presentMode = presentMode,
-			.clipped = VK_TRUE, //we don't care about the color of pixels that are obscured, because another window is in front of them, for example
+			.clipped = VK_TRUE, //we don't care about the colour of pixels that are obscured, because another window is in front of them, for example
 			.oldSwapchain = VK_NULL_HANDLE //used to recreate the swap chain, but we don't need to do that yet (resizing windows, for example)
 		};
 
@@ -406,7 +413,7 @@ private:
 	}
 
 	void createRenderPass() {
-		VkAttachmentDescription colorAttachment {
+		VkAttachmentDescription colourAttachment {
 			.format = swapChainImageFormat,
 			.samples = VK_SAMPLE_COUNT_1_BIT,
 			.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR, //clear the framebuffer to a constant at the start
@@ -417,7 +424,7 @@ private:
 			.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, //transition to present when the render pass is finished
 		};
 
-		VkAttachmentReference colorAttachmentRef {
+		VkAttachmentReference colourAttachmentRef {
 			.attachment = 0, //fragment shader output location
 			.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
 		};
@@ -425,13 +432,13 @@ private:
 		VkSubpassDescription subpass {
 			.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
 			.colorAttachmentCount = 1,
-			.pColorAttachments = &colorAttachmentRef,
+			.pColorAttachments = &colourAttachmentRef,
 		};
 
 		VkRenderPassCreateInfo renderPassInfo {
 			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
 			.attachmentCount = 1,
-			.pAttachments = &colorAttachment,
+			.pAttachments = &colourAttachment,
 			.subpassCount = 1,
 			.pSubpasses = &subpass,
 		};
@@ -502,7 +509,7 @@ private:
 			.sampleShadingEnable = VK_FALSE, //no multisampling, yet
 		};
 
-		VkPipelineColorBlendAttachmentState colorBlendAttachment {
+		VkPipelineColorBlendAttachmentState colourBlendAttachment {
 			.blendEnable = VK_TRUE, //we do some alpha blending
 			.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
 			.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
@@ -513,11 +520,11 @@ private:
 			.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT,
 		};
 
-		VkPipelineColorBlendStateCreateInfo colorBlending {
+		VkPipelineColorBlendStateCreateInfo colourBlending {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
 			.logicOpEnable = VK_FALSE, //we don't care about bitwise blending
 			.attachmentCount = 1,
-			.pAttachments = &colorBlendAttachment,
+			.pAttachments = &colourBlendAttachment,
 		};
 
 		std::vector<VkDynamicState> dynamicStates = {
@@ -549,7 +556,7 @@ private:
 			.pViewportState = &viewportState,
 			.pRasterizationState = &rasterizer,
 			.pMultisampleState = &multisampling,
-			.pColorBlendState = &colorBlending,
+			.pColorBlendState = &colourBlending,
 			.pDynamicState = &dynamicState,
 			.layout = pipelineLayout,
 			.renderPass = renderPass,
@@ -565,9 +572,9 @@ private:
 	}
 
 	void createFramebuffers() {
-		swapChainFrameBuffers.resize(swapChainImageViews.size());
+		swapChainFramebuffers.resize(swapChainImageViews.size());
 
-		for (size_t i = i; i < swapChainImageViews.size(); i++) {
+		for (size_t i = 0; i < swapChainImageViews.size(); i++) {
 			VkImageView attachments[] = {
 				swapChainImageViews[i],
 			};
@@ -582,12 +589,91 @@ private:
 				.layers = 1,
 			};
 
-			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFrameBuffers[i]) != VK_SUCCESS) {
+			if (vkCreateFramebuffer(device, &framebufferInfo, nullptr, &swapChainFramebuffers[i]) != VK_SUCCESS) {
 				throw std::runtime_error("failed to create framebuffer!");
 			}
 		}
 	}
 
+	void createCommandPool() {
+		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+
+		VkCommandPoolCreateInfo poolInfo {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT, //we want to reset every frame
+			.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value(),
+		};
+
+		if (vkCreateCommandPool(device, &poolInfo, nullptr, &commandPool) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create command pool!");
+		}
+	}
+
+	void createCommandBuffer() {
+		VkCommandBufferAllocateInfo allocInfo {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			.commandPool = commandPool,
+			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			.commandBufferCount = 1,
+		};
+
+		if (vkAllocateCommandBuffers(device, &allocInfo, &commandBuffer) != VK_SUCCESS) {
+			throw std::runtime_error("failed to allocate command buffers!");
+		}
+	}
+
+	void recordCommandBuffer(VkCommandBuffer cmdBuffer, uint32_t imageIndex) {
+		VkCommandBufferBeginInfo beginInfo {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+			.flags = 0, // Perhaps later
+			.pInheritanceInfo = nullptr, // Optional, only relevant for secondary command buffers
+		};
+
+		if (vkBeginCommandBuffer(cmdBuffer, &beginInfo) != VK_SUCCESS) {
+			throw std::runtime_error("failed to begin recording command buffer!");
+		}
+
+		VkClearValue clearColour = {{{0.0f, 0.0f, 0.0f, 1.0f}}}; //background colour
+		VkRenderPassBeginInfo renderPassInfo {
+			.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+			.renderPass = renderPass,
+			.framebuffer = swapChainFramebuffers[imageIndex],
+			.renderArea = {
+				.offset = {0, 0},
+				.extent = swapChainExtent,
+			},
+			.clearValueCount = 1,
+			.pClearValues = &clearColour,
+		};
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+		VkViewport viewport {
+			.x = 0.0f,
+			.y = 0.0f,
+			.width = (float) swapChainExtent.width,
+			.height = (float) swapChainExtent.height,
+			.minDepth = 0.0f,
+			.maxDepth = 1.0f,
+		};
+		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+
+		VkRect2D scissor {
+			.offset = {0, 0},
+			.extent = swapChainExtent,
+		};
+		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+
+		vkCmdDraw(commandBuffer, 3, 1, 0, 0);
+
+		vkCmdEndRenderPass(cmdBuffer);
+
+		if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS) {
+			throw std::runtime_error("failed to record command buffer!");
+		}
+	}
 
 	VkShaderModule createShaderModule(const std::vector<char>& code) {
 		VkShaderModuleCreateInfo createInfo {
