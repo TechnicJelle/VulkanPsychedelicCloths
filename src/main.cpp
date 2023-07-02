@@ -1,4 +1,11 @@
 #pragma clang diagnostic push
+
+// To ignore warnings about unused parameters:
+#pragma ide diagnostic ignored "UnusedParameter"
+
+// To ignore the warning about the GLFW_INCLUDE_VULKAN macro:
+#pragma ide diagnostic ignored "OCUnusedMacroInspection"
+
 // To ignore the warnings about the enableValidationLayers variable:
 #pragma ide diagnostic ignored "UnreachableCode"
 #pragma ide diagnostic ignored "Simplify"
@@ -67,7 +74,7 @@ static std::vector<char> readFile(const std::string& filename) {
 		throw std::runtime_error("failed to open file! " + filename);
 	}
 
-	auto fileSize = file.tellg();
+	std::streampos fileSize = file.tellg();
 	std::vector<char> buffer(fileSize);
 
 	file.seekg(0);
@@ -234,7 +241,7 @@ private:
 			.pApplicationInfo = &appInfo,
 		};
 
-		auto extensions = getRequiredExtensions();
+		std::vector<const char*> extensions = getRequiredExtensions();
 		createInfo.enabledExtensionCount = extensions.size();
 		createInfo.ppEnabledExtensionNames = extensions.data();
 
@@ -297,7 +304,7 @@ private:
 		std::vector<VkPhysicalDevice> devices(deviceCount);
 		vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
-		for (const auto& potentialPhysicalDevice : devices) {
+		for (VkPhysicalDevice_T* potentialPhysicalDevice : devices) {
 			if (isDeviceSuitable(potentialPhysicalDevice)) {
 				VkPhysicalDeviceProperties properties;
 				vkGetPhysicalDeviceProperties(potentialPhysicalDevice, &properties);
@@ -486,8 +493,8 @@ private:
 	}
 
 	void createGraphicsPipeline() {
-		auto vertShaderCode = readFile("shaders/vert.spv");
-		auto fragShaderCode = readFile("shaders/frag.spv");
+		std::vector<char> vertShaderCode = readFile("shaders/vert.spv");
+		std::vector<char> fragShaderCode = readFile("shaders/frag.spv");
 
 		VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
 		VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
@@ -798,7 +805,7 @@ private:
 	}
 
 	static VkSurfaceFormatKHR chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats) {
-		for (const auto& availableFormat : availableFormats) {
+		for (VkSurfaceFormatKHR availableFormat : availableFormats) {
 			if (availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB
 				&& availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
 				return availableFormat;
@@ -809,7 +816,7 @@ private:
 	}
 
 	static VkPresentModeKHR chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes) {
-		for (const auto& availablePresentMode : availablePresentModes) {
+		for (VkPresentModeKHR availablePresentMode : availablePresentModes) {
 			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) {
 				return availablePresentMode;
 			}
@@ -899,7 +906,7 @@ private:
 
 		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
-		for (const auto& extension : availableExtensions) {
+		for (VkExtensionProperties extension : availableExtensions) {
 			requiredExtensions.erase(extension.extensionName);
 		}
 
@@ -916,7 +923,7 @@ private:
 		vkGetPhysicalDeviceQueueFamilyProperties(potentialPhysicalDevice, &queueFamilyCount, queueFamilies.data());
 
 		int i = 0;
-		for (const auto& queueFamily : queueFamilies) {
+		for (VkQueueFamilyProperties queueFamily : queueFamilies) {
 			if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
 				indices.graphicsFamily = i;
 			}
@@ -961,7 +968,7 @@ private:
 		for (const char* layerName : validationLayers) {
 			bool layerFound = false;
 
-			for (const auto& layerProperties : availableLayers) {
+			for (VkLayerProperties layerProperties : availableLayers) {
 				if (strcmp(layerName, layerProperties.layerName) == 0) {
 					layerFound = true;
 					break;
