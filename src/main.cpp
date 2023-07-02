@@ -1,5 +1,8 @@
 #pragma clang diagnostic push
 
+// I don't like auto
+#pragma ide diagnostic ignored "modernize-use-auto"
+
 // To ignore warnings about unused parameters:
 #pragma ide diagnostic ignored "UnusedParameter"
 
