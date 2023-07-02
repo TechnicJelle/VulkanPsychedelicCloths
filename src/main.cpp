@@ -13,12 +13,14 @@
 #define GLFW_INCLUDE_VULKAN
 
 #include <GLFW/glfw3.h>
+#include <glm/glm.hpp>
 
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
 #include <cstring>
 #include <vector>
+#include <array>
 #include <optional>
 #include <set>
 #include <limits>
@@ -100,6 +102,42 @@ struct SwapChainSupportDetails {
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
+struct Vertex {
+	glm::vec2 pos;
+	glm::vec3 colour;
+
+	static VkVertexInputBindingDescription getBindingDescription() {
+		VkVertexInputBindingDescription bindingDescription {
+			.binding = 0,
+			.stride = sizeof(Vertex),
+			.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+		};
+
+		return bindingDescription;
+	}
+
+	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions {
+			{
+				{
+					.location = 0,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32_SFLOAT,
+					.offset = offsetof(Vertex, pos),
+				},
+				{
+					.location = 1,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32B32_SFLOAT,
+					.offset = offsetof(Vertex, colour),
+				},
+			}
+		};
+
+		return attributeDescriptions;
+	}
+};
+
 class HelloTriangleApplication {
 public:
 	void run() {
@@ -142,6 +180,12 @@ private:
 	uint32_t currentFrame = 0;
 
 	bool framebufferResized = false;
+
+	const std::vector<Vertex> vertices = {
+		{{0.0f,  -0.5f}, {1.0f, 0.0f, 0.0f}},
+		{{0.5f,  0.5f},  {0.0f, 1.0f, 0.0f}},
+		{{-0.5f, 0.5f},  {0.0f, 0.0f, 1.0f}},
+	};
 
 	void initWindow() {
 		glfwInit();
@@ -546,12 +590,15 @@ private:
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = {vertShaderStageInfo, fragShaderStageInfo};
 
+		auto bindingDescription = Vertex::getBindingDescription();
+		auto attributeDescriptions = Vertex::getAttributeDescriptions();
+
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-			.vertexBindingDescriptionCount = 0,
-			.pVertexBindingDescriptions = nullptr, //optional, because count == 0
-			.vertexAttributeDescriptionCount = 0,
-			.pVertexAttributeDescriptions = nullptr, //optional, because count == 0
+			.vertexBindingDescriptionCount = 1,
+			.pVertexBindingDescriptions = &bindingDescription,
+			.vertexAttributeDescriptionCount = attributeDescriptions.size(),
+			.pVertexAttributeDescriptions = attributeDescriptions.data(),
 		};
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly {
