@@ -142,6 +142,14 @@ private:
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
 		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+
+		glfwSetKeyCallback(window, keyCallback);
+	}
+
+	static void keyCallback(GLFWwindow* window, int key, int scanCode, int action, int modifierKeys) {
+		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
+			glfwSetWindowShouldClose(window, GLFW_TRUE);
+		}
 	}
 
 	void initVulkan() {
