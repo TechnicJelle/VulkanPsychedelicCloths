@@ -185,6 +185,8 @@ private:
 
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
+	VkBuffer indexBuffer;
+	VkDeviceMemory indexBufferMemory;
 
 	std::vector<VkCommandBuffer> commandBuffers;
 
@@ -196,9 +198,15 @@ private:
 	bool framebufferResized = false;
 
 	const std::vector<Vertex> vertices = {
-		{{0.0f,  -0.5f}, {1.0f, 0.0f, 0.0f}},
-		{{0.5f,  0.5f},  {0.0f, 1.0f, 0.0f}},
-		{{-0.5f, 0.5f},  {0.0f, 0.0f, 1.0f}},
+		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, //top left
+		{{0.5f,  -0.5f}, {0.0f, 1.0f, 0.0f}}, //top right
+		{{0.5f,  0.5f},  {0.0f, 0.0f, 1.0f}}, //bottom right
+		{{-0.5f, 0.5f},  {1.0f, 1.0f, 1.0f}}, //bottom left
+	};
+
+	const std::vector<uint16_t> indices = {
+		0, 1, 2, //top right
+		2, 3, 0, //bottom left
 	};
 
 	void initWindow() {
@@ -239,6 +247,7 @@ private:
 		createFramebuffers();
 		createCommandPools();
 		createVertexBuffer();
+		createIndexBuffer();
 		createCommandBuffers();
 		createSyncObjects();
 	}
@@ -270,6 +279,9 @@ private:
 		vkDestroyPipeline(device, graphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyRenderPass(device, renderPass, nullptr);
+
+		vkDestroyBuffer(device, indexBuffer, nullptr);
+		vkFreeMemory(device, indexBufferMemory, nullptr);
 
 		vkDestroyBuffer(device, vertexBuffer, nullptr);
 		vkFreeMemory(device, vertexBufferMemory, nullptr);
@@ -413,13 +425,13 @@ private:
 	}
 
 	void createLogicalDevice() {
-		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies = {
-			indices.graphicsFamily.value(),
-			indices.presentFamily.value(),
-			indices.transferFamily.value(),
+			queueFamilyIndices.graphicsFamily.value(),
+			queueFamilyIndices.presentFamily.value(),
+			queueFamilyIndices.transferFamily.value(),
 		};
 
 		float queuePriority = 1.0f;
@@ -455,9 +467,9 @@ private:
 			throw std::runtime_error("failed to create logical device!");
 		}
 
-		vkGetDeviceQueue(device, indices.graphicsFamily.value(), 0, &graphicsQueue);
-		vkGetDeviceQueue(device, indices.presentFamily.value(), 0, &presentQueue);
-		vkGetDeviceQueue(device, indices.transferFamily.value(), 0, &transferQueue);
+		vkGetDeviceQueue(device, queueFamilyIndices.graphicsFamily.value(), 0, &graphicsQueue);
+		vkGetDeviceQueue(device, queueFamilyIndices.presentFamily.value(), 0, &presentQueue);
+		vkGetDeviceQueue(device, queueFamilyIndices.transferFamily.value(), 0, &transferQueue);
 	}
 
 	void createSwapChain() {
@@ -489,25 +501,25 @@ private:
 			.oldSwapchain = VK_NULL_HANDLE //used to recreate the swap chain, but we don't need to do that yet (resizing windows, for example)
 		};
 
-		QueueFamilyIndices indices = findQueueFamilies(physicalDevice);
+		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
-		if (indices.graphicsFamily == indices.presentFamily) {
-			uint32_t queueFamilyIndices[] = {
-				indices.graphicsFamily.value(),
-				indices.transferFamily.value(),
+		if (queueFamilyIndices.graphicsFamily == queueFamilyIndices.presentFamily) {
+			uint32_t localIndices[] = {
+				queueFamilyIndices.graphicsFamily.value(),
+				queueFamilyIndices.transferFamily.value(),
 			};
 
 			createInfo.queueFamilyIndexCount = 2;
-			createInfo.pQueueFamilyIndices = queueFamilyIndices;
+			createInfo.pQueueFamilyIndices = localIndices;
 		} else {
-			uint32_t queueFamilyIndices[] = {
-				indices.graphicsFamily.value(),
-				indices.presentFamily.value(),
-				indices.transferFamily.value(),
+			uint32_t localIndices[] = {
+				queueFamilyIndices.graphicsFamily.value(),
+				queueFamilyIndices.presentFamily.value(),
+				queueFamilyIndices.transferFamily.value(),
 			};
 
 			createInfo.queueFamilyIndexCount = 3;
-			createInfo.pQueueFamilyIndices = queueFamilyIndices;
+			createInfo.pQueueFamilyIndices = localIndices;
 		}
 
 		if (vkCreateSwapchainKHR(device, &createInfo, nullptr, &swapChain) != VK_SUCCESS) {
@@ -795,6 +807,26 @@ private:
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 	}
 
+	void createIndexBuffer() {
+		VkDeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+
+		VkBuffer stagingBuffer;
+		VkDeviceMemory stagingBufferMemory;
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, stagingBuffer, stagingBufferMemory);
+
+		void* data;
+		vkMapMemory(device, stagingBufferMemory, 0, bufferSize, 0, &data);
+		memcpy(data, indices.data(), bufferSize);
+		vkUnmapMemory(device, stagingBufferMemory);
+
+		createBuffer(bufferSize, VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, indexBuffer, indexBufferMemory);
+
+		copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+
+		vkDestroyBuffer(device, stagingBuffer, nullptr);
+		vkFreeMemory(device, stagingBufferMemory, nullptr);
+	}
+
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
 		VkBufferCreateInfo bufferInfo {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -889,14 +921,14 @@ private:
 		}
 	}
 
-	void recordCommandBuffer(VkCommandBuffer cmdBuffer, uint32_t imageIndex) {
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
 		VkCommandBufferBeginInfo beginInfo {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 			.flags = 0, // Perhaps later
 			.pInheritanceInfo = nullptr, // Optional, only relevant for secondary command buffers
 		};
 
-		if (vkBeginCommandBuffer(cmdBuffer, &beginInfo) != VK_SUCCESS) {
+		if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS) {
 			throw std::runtime_error("failed to begin recording command buffer!");
 		}
 
@@ -913,9 +945,9 @@ private:
 			.pClearValues = &clearColour,
 		};
 
-		vkCmdBeginRenderPass(cmdBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
 
 		VkViewport viewport {
 			.x = 0.0f,
@@ -925,23 +957,25 @@ private:
 			.minDepth = 0.0f,
 			.maxDepth = 1.0f,
 		};
-		vkCmdSetViewport(cmdBuffer, 0, 1, &viewport);
+		vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
 		VkRect2D scissor {
 			.offset = {0, 0},
 			.extent = swapChainExtent,
 		};
-		vkCmdSetScissor(cmdBuffer, 0, 1, &scissor);
+		vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
 		VkBuffer vertexBuffers[] = {vertexBuffer};
 		VkDeviceSize offsets[] = {0};
-		vkCmdBindVertexBuffers(cmdBuffer, 0, 1, vertexBuffers, offsets);
+		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
-		vkCmdDraw(cmdBuffer, vertices.size(), 1, 0, 0);
+		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
 
-		vkCmdEndRenderPass(cmdBuffer);
+		vkCmdDrawIndexed(commandBuffer, indices.size(), 1, 0, 0, 0);
 
-		if (vkEndCommandBuffer(cmdBuffer) != VK_SUCCESS) {
+		vkCmdEndRenderPass(commandBuffer);
+
+		if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
 			throw std::runtime_error("failed to record command buffer!");
 		}
 	}
@@ -1119,7 +1153,7 @@ private:
 		vkGetPhysicalDeviceFeatures(potentialPhysicalDevice, &deviceFeatures);
 
 
-		QueueFamilyIndices indices = findQueueFamilies(potentialPhysicalDevice);
+		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(potentialPhysicalDevice);
 
 		bool extensionsSupported = checkDeviceExtensionSupport(potentialPhysicalDevice);
 
@@ -1131,7 +1165,7 @@ private:
 		}
 
 		return deviceProperties.apiVersion != 0 && deviceFeatures.geometryShader
-			   && indices.isComplete() && extensionsSupported
+			   && queueFamilyIndices.isComplete() && extensionsSupported
 			   && isSwapChainAdequate;
 	}
 
@@ -1154,7 +1188,7 @@ private:
 	}
 
 	QueueFamilyIndices findQueueFamilies(VkPhysicalDevice potentialPhysicalDevice) {
-		QueueFamilyIndices indices;
+		QueueFamilyIndices queueFamilyIndices;
 
 		uint32_t queueFamilyCount;
 		vkGetPhysicalDeviceQueueFamilyProperties(potentialPhysicalDevice, &queueFamilyCount, nullptr);
@@ -1165,26 +1199,26 @@ private:
 		int i = 0;
 		for (VkQueueFamilyProperties queueFamily : queueFamilies) {
 			if ((queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT) && !(queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT)) {
-				indices.transferFamily = i;
+				queueFamilyIndices.transferFamily = i;
 			} else if (queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT) {
-				indices.graphicsFamily = i;
+				queueFamilyIndices.graphicsFamily = i;
 			}
 
 			VkBool32 presentSupport;
 			vkGetPhysicalDeviceSurfaceSupportKHR(potentialPhysicalDevice, i, surface, &presentSupport);
 
 			if (presentSupport) {
-				indices.presentFamily = i;
+				queueFamilyIndices.presentFamily = i;
 			}
 
-			if (indices.isComplete()) {
+			if (queueFamilyIndices.isComplete()) {
 				break;
 			}
 
 			i++;
 		}
 
-		return indices;
+		return queueFamilyIndices;
 	}
 
 	static std::vector<const char*> getRequiredExtensions() {
