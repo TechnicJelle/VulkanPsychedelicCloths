@@ -644,7 +644,7 @@ private:
 		};
 
 		VkDescriptorSetLayoutCreateInfo layoutInfo {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 			.bindingCount = 1,
 			.pBindings = &uboLayoutBinding,
 		};
