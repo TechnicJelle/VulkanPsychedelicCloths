@@ -151,9 +151,10 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
-	glm::mat4 model;
-	glm::mat4 view;
-	glm::mat4 proj;
+	//Alignment: https://vulkan-tutorial.com/en/Uniform_buffers/Descriptor_pool_and_sets#page_Alignment-requirements
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
 };
 
 class HelloTriangleApplication {
@@ -202,6 +203,9 @@ private:
 	std::vector<VkBuffer> uniformBuffers;
 	std::vector<VkDeviceMemory> uniformBuffersMemory;
 	std::vector<void*> uniformBuffersMapped;
+
+	VkDescriptorPool descriptorPool;
+	std::vector<VkDescriptorSet> descriptorSets;
 
 	std::vector<VkCommandBuffer> commandBuffers;
 
@@ -265,6 +269,8 @@ private:
 		createVertexBuffer();
 		createIndexBuffer();
 		createUniformBuffers();
+		createDescriptorPool();
+		createDescriptorSets();
 		createCommandBuffers();
 		createSyncObjects();
 	}
@@ -301,6 +307,8 @@ private:
 			vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 			vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
 		}
+
+		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
 		vkDestroyDescriptorSetLayout(device, descriptorSetLayout, nullptr);
 
@@ -707,7 +715,7 @@ private:
 			.rasterizerDiscardEnable = VK_FALSE,
 			.polygonMode = VK_POLYGON_MODE_FILL, //fill the area of the polygon with fragments (also allows wireframe rendering!)
 			.cullMode = VK_CULL_MODE_BACK_BIT, //cull back faces
-			.frontFace = VK_FRONT_FACE_CLOCKWISE, //vertex order is clockwise for the front face
+			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE, //vertex order is counter-clockwise for the front face (reversed due to the Y-flip in proj-matrix)
 			.depthBiasEnable = VK_FALSE, //we don't need to change the depth values
 			.lineWidth = 1.0f,
 		};
@@ -885,6 +893,60 @@ private:
 		}
 	}
 
+	void createDescriptorPool() {
+		VkDescriptorPoolSize poolSize {
+			.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+			.descriptorCount = MAX_FRAMES_IN_FLIGHT,
+		};
+
+		VkDescriptorPoolCreateInfo poolInfo {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.maxSets = MAX_FRAMES_IN_FLIGHT,
+			.poolSizeCount = 1,
+			.pPoolSizes = &poolSize,
+		};
+
+		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create descriptor pool!");
+		}
+	}
+
+	void createDescriptorSets() {
+		std::vector<VkDescriptorSetLayout> layouts(MAX_FRAMES_IN_FLIGHT, descriptorSetLayout);
+
+		VkDescriptorSetAllocateInfo allocateInfo {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+			.descriptorPool = descriptorPool,
+			.descriptorSetCount = MAX_FRAMES_IN_FLIGHT,
+			.pSetLayouts = layouts.data(),
+		};
+
+		descriptorSets.resize(MAX_FRAMES_IN_FLIGHT);
+		if (vkAllocateDescriptorSets(device, &allocateInfo, descriptorSets.data()) != VK_SUCCESS) {
+			throw std::runtime_error("failed to allocate descriptor sets!");
+		}
+
+		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
+			VkDescriptorBufferInfo bufferInfo {
+				.buffer = uniformBuffers[i],
+				.offset = 0,
+				.range = sizeof(UniformBufferObject),
+			};
+
+			VkWriteDescriptorSet descriptorWrite {
+				.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+				.dstSet = descriptorSets[i],
+				.dstBinding = 0,
+				.dstArrayElement = 0,
+				.descriptorCount = 1,
+				.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+				.pBufferInfo = &bufferInfo,
+			};
+
+			vkUpdateDescriptorSets(device, 1, &descriptorWrite, 0, nullptr);
+		}
+	}
+
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
 		VkBufferCreateInfo bufferInfo {
 			.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -1028,6 +1090,8 @@ private:
 		vkCmdBindVertexBuffers(commandBuffer, 0, 1, vertexBuffers, offsets);
 
 		vkCmdBindIndexBuffer(commandBuffer, indexBuffer, 0, VK_INDEX_TYPE_UINT16);
+
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, indices.size(), 1, 0, 0, 0);
 
