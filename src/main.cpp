@@ -43,6 +43,8 @@ const uint32_t HEIGHT = 600;
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
 
+#define PIPELINE_CACHE_FILE "pipeline_cache.bin"
+
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_KHRONOS_validation",
 };
@@ -190,6 +192,7 @@ private:
 	VkRenderPass renderPass;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
+	VkPipelineCache pipelineCache;
 	std::vector<VkPipeline> graphicsPipelines;
 
 	VkCommandPool graphicsCommandPool;
@@ -326,6 +329,8 @@ private:
 			vkDestroyBuffer(device, uniformBuffers[i], nullptr);
 			vkFreeMemory(device, uniformBuffersMemory[i], nullptr);
 		}
+		savePipelineCache();
+		vkDestroyPipelineCache(device, pipelineCache, nullptr);
 
 		vkDestroyDescriptorPool(device, descriptorPool, nullptr);
 
@@ -683,7 +688,59 @@ private:
 		}
 	}
 
+	void loadPipelineCache() {
+		VkPipelineCacheCreateInfo pipelineCacheCreateInfo {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+		};
+
+		std::ifstream in_file;
+
+		in_file.open(PIPELINE_CACHE_FILE, std::ios::in | std::ios::binary);
+		if (in_file) {
+			printf("loading pipeline cache file\n");
+			std::vector<char> buffer((std::istreambuf_iterator<char>(in_file)), std::istreambuf_iterator<char>());
+			pipelineCacheCreateInfo.initialDataSize = buffer.size();
+			pipelineCacheCreateInfo.pInitialData = buffer.data();
+			in_file.close();
+		} else {
+			printf("did not open pipeline cache file\n");
+			pipelineCacheCreateInfo.initialDataSize = 0;
+			pipelineCacheCreateInfo.pInitialData = nullptr;
+		}
+
+		if (vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &pipelineCache) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create pipeline cache!");
+		}
+	}
+
+	void savePipelineCache() {
+		std::ofstream out_file;
+
+		out_file.open(PIPELINE_CACHE_FILE, std::ios::out | std::ios::binary);
+		if (!out_file) {
+			printf("failed to open pipeline cache file!\n");
+			return;
+		}
+
+		size_t dataSize;
+		if (vkGetPipelineCacheData(device, pipelineCache, &dataSize, nullptr) != VK_SUCCESS) {
+			printf("failed to get pipeline cache data size!\n");
+			return;
+		}
+
+		void* data = malloc(dataSize);
+		if (vkGetPipelineCacheData(device, pipelineCache, &dataSize, data) != VK_SUCCESS) {
+			printf("failed to get pipeline cache data!\n");
+			return;
+		}
+
+		out_file.write((const char*) data, (long) dataSize);
+		out_file.close();
+	}
+
 	void createGraphicsPipelines() {
+		loadPipelineCache();
+
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo {
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 			.setLayoutCount = 1,
@@ -808,7 +865,7 @@ private:
 			.subpass = 0,
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipelines[pipeline]) != VK_SUCCESS) {
+		if (vkCreateGraphicsPipelines(device, pipelineCache, 1, &pipelineInfo, nullptr, &graphicsPipelines[pipeline]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
 
