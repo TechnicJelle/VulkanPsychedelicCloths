@@ -684,6 +684,16 @@ private:
 	}
 
 	void createGraphicsPipelines() {
+		VkPipelineLayoutCreateInfo pipelineLayoutInfo {
+			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+			.setLayoutCount = 1,
+			.pSetLayouts = &descriptorSetLayout,
+		};
+
+		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create pipeline layout!");
+		}
+
 		graphicsPipelines.resize(2);
 		createGraphicsPipeline(DEFAULT);
 		createGraphicsPipeline(WIREFRAME);
@@ -781,16 +791,6 @@ private:
 			.dynamicStateCount = (uint32_t) dynamicStates.size(),
 			.pDynamicStates = dynamicStates.data(),
 		};
-
-		VkPipelineLayoutCreateInfo pipelineLayoutInfo {
-			.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-			.setLayoutCount = 1,
-			.pSetLayouts = &descriptorSetLayout,
-		};
-
-		if (vkCreatePipelineLayout(device, &pipelineLayoutInfo, nullptr, &pipelineLayout) != VK_SUCCESS) {
-			throw std::runtime_error("failed to create pipeline layout!");
-		}
 
 		VkGraphicsPipelineCreateInfo pipelineInfo {
 			.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
