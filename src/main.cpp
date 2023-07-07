@@ -157,7 +157,7 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 proj;
 };
 
-class HelloTriangleApplication {
+class PsychedelicClothsApplication {
 public:
 	void run() {
 		initWindow();
@@ -234,7 +234,7 @@ private:
 		glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
+		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan Psychedelic Cloths", nullptr, nullptr);
 
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
@@ -243,7 +243,7 @@ private:
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
-		HelloTriangleApplication* app = (HelloTriangleApplication*) (glfwGetWindowUserPointer(window));
+		PsychedelicClothsApplication* app = (PsychedelicClothsApplication*) (glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
 	}
 
@@ -366,7 +366,7 @@ private:
 
 		VkApplicationInfo appInfo {
 			.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-			.pApplicationName = "Hello Triangle",
+			.pApplicationName = "Vulkan Psychedelic Cloths",
 			.applicationVersion = VK_MAKE_VERSION(1, 0, 0),
 			.pEngineName = "No Engine",
 			.engineVersion = VK_MAKE_VERSION(1, 0, 0),
@@ -1415,7 +1415,7 @@ private:
 };
 
 int main() {
-	HelloTriangleApplication app {};
+	PsychedelicClothsApplication app {};
 
 	try {
 		app.run();

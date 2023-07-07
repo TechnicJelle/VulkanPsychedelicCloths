@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
-project(VulkanTriangle)
+project(VulkanPsychedelicCloths)
 
 set(CMAKE_CXX_STANDARD 23)
 
