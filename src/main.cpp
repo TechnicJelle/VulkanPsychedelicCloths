@@ -190,7 +190,7 @@ private:
 	VkRenderPass renderPass;
 	VkDescriptorSetLayout descriptorSetLayout;
 	VkPipelineLayout pipelineLayout;
-	VkPipeline graphicsPipeline;
+	std::vector<VkPipeline> graphicsPipelines;
 
 	VkCommandPool graphicsCommandPool;
 	VkCommandPool transferCommandPool;
@@ -215,6 +215,13 @@ private:
 	uint32_t currentFrame = 0;
 
 	bool framebufferResized = false;
+
+	enum MyPipeline {
+		DEFAULT = 0,
+		WIREFRAME = 1,
+	};
+
+	MyPipeline currentPipeline = DEFAULT;
 
 	const std::vector<Vertex> vertices = {
 		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, //top left
@@ -248,8 +255,20 @@ private:
 	}
 
 	static void keyCallback(GLFWwindow* window, int key, int scanCode, int action, int modifierKeys) {
-		if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
-			glfwSetWindowShouldClose(window, GLFW_TRUE);
+		PsychedelicClothsApplication* app = (PsychedelicClothsApplication*) (glfwGetWindowUserPointer(window));
+		if (action != GLFW_PRESS) return;
+		switch (key) {
+			case GLFW_KEY_ESCAPE:
+				glfwSetWindowShouldClose(window, GLFW_TRUE);
+				break;
+			case GLFW_KEY_1:
+				app->currentPipeline = DEFAULT;
+				break;
+			case GLFW_KEY_2:
+				app->currentPipeline = WIREFRAME;
+				break;
+			default:
+				break;
 		}
 	}
 
@@ -263,7 +282,7 @@ private:
 		createImageViews();
 		createRenderPass();
 		createDescriptorSetLayout();
-		createGraphicsPipeline();
+		createGraphicsPipelines();
 		createFramebuffers();
 		createCommandPools();
 		createVertexBuffer();
@@ -299,7 +318,7 @@ private:
 	void cleanup() {
 		cleanupSwapChain();
 
-		vkDestroyPipeline(device, graphicsPipeline, nullptr);
+		for (VkPipeline graphicsPipeline : graphicsPipelines) vkDestroyPipeline(device, graphicsPipeline, nullptr);
 		vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
 		vkDestroyRenderPass(device, renderPass, nullptr);
 
@@ -477,7 +496,9 @@ private:
 			queueCreateInfos.push_back(queueCreateInfo);
 		}
 
-		VkPhysicalDeviceFeatures deviceFeatures {};
+		VkPhysicalDeviceFeatures deviceFeatures {
+			.fillModeNonSolid = VK_TRUE, //for wireframe rendering
+		};
 
 		VkDeviceCreateInfo createInfo {
 			.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
@@ -662,7 +683,13 @@ private:
 		}
 	}
 
-	void createGraphicsPipeline() {
+	void createGraphicsPipelines() {
+		graphicsPipelines.resize(2);
+		createGraphicsPipeline(DEFAULT);
+		createGraphicsPipeline(WIREFRAME);
+	}
+
+	void createGraphicsPipeline(MyPipeline pipeline) {
 		std::vector<char> vertShaderCode = readFile("shaders/vert.spv");
 		std::vector<char> fragShaderCode = readFile("shaders/frag.spv");
 
@@ -713,7 +740,7 @@ private:
 			.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
 			.depthClampEnable = VK_FALSE, //clamps fragments to the near and far planes, instead of discarded
 			.rasterizerDiscardEnable = VK_FALSE,
-			.polygonMode = VK_POLYGON_MODE_FILL, //fill the area of the polygon with fragments (also allows wireframe rendering!)
+			.polygonMode = pipeline == WIREFRAME ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL, //fill the whole area of the polygon with fragments, or just the edges
 			.cullMode = VK_CULL_MODE_BACK_BIT, //cull back faces
 			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE, //vertex order is counter-clockwise for the front face (reversed due to the Y-flip in proj-matrix)
 			.depthBiasEnable = VK_FALSE, //we don't need to change the depth values
@@ -781,7 +808,7 @@ private:
 			.subpass = 0,
 		};
 
-		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline) != VK_SUCCESS) {
+		if (vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipelines[pipeline]) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create graphics pipeline!");
 		}
 
@@ -1067,7 +1094,7 @@ private:
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipelines[currentPipeline]);
 
 		VkViewport viewport {
 			.x = 0.0f,
@@ -1305,7 +1332,7 @@ private:
 			isSwapChainAdequate = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 		}
 
-		return deviceProperties.apiVersion != 0 && deviceFeatures.geometryShader
+		return deviceProperties.apiVersion != 0 && deviceFeatures.geometryShader && deviceFeatures.fillModeNonSolid
 			   && queueFamilyIndices.isComplete() && extensionsSupported
 			   && isSwapChainAdequate;
 	}
