@@ -88,7 +88,7 @@ float lighting() {
 void main() {
 	vec3 checker = (fragInstanceIndex > 0.5)
 		? checkers(uvRadialize(uvTimeScale(uvTimeRotate(fragUV)))) * vec3(1.0, 1.0, -1.0) + vec3(0.0, 0.0, 1.0)
-		: checkers(uvTimeRotate(uvTimeScale(fragUV)));
+		: checkers(uvTimeRotate(uvTimeScale(fragUV.xy))) * vec3(0,0,1) + vec3(1,1,0);
 	float light = (1-pow(lighting() / ubo.light_radiusFactor, ubo.light_falloff)) * ubo.light_strength;
 
 	outColour = vec4(fragColour + checker * clamp(light, ubo.light_minimum, 1.0), 1);

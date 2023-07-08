@@ -164,6 +164,8 @@ struct Vertex {
 };
 
 struct UniformBufferObject {
+#pragma clang diagnostic push
+#pragma ide diagnostic ignored "OCUnusedGlobalDeclarationInspection"
 	//Alignment: https://vulkan-tutorial.com/en/Uniform_buffers/Descriptor_pool_and_sets#page_Alignment-requirements
 	alignas(4) float time;
 	alignas(8) glm::vec2 mouse;
@@ -184,6 +186,7 @@ struct UniformBufferObject {
 	alignas(4) float light_falloff;
 	alignas(4) float light_strength;
 	alignas(4) float light_minimum;
+#pragma clang diagnostic pop
 };
 
 class PsychedelicClothsApplication {
@@ -372,7 +375,7 @@ private:
 	}
 
 	void initGeometry() {
-		makePlane(3);
+		makePlane(100);
 	}
 
 	void initVulkan() {
