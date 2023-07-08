@@ -7,6 +7,8 @@ layout(binding = 0) uniform UniformBufferOvject {
 	vec2 mouse;
 	vec2 windowSize;
 
+	float plane_orbitSpeed;
+
 	float noise_scale;
 	float noise_intensity;
 	float noise_speed;

@@ -7,6 +7,8 @@ layout(binding = 0) uniform UniformBufferOvject {
 	vec2 mouse;
 	vec2 windowSize;
 
+	float plane_orbitSpeed;
+
 	float noise_scale;
 	float noise_intensity;
 	float noise_speed;
@@ -31,7 +33,7 @@ layout(location = 1) out vec2 fragUV;
 layout(location = 2) out int fragInstanceIndex;
 
 void main() {
-	float instanceTime = ubo.time + gl_InstanceIndex * PI/2;
+	float instanceTime = ubo.time * ubo.plane_orbitSpeed + gl_InstanceIndex * PI/2;
 	vec2 offset = vec2(
 		0.5f * cos(instanceTime * -2.0f),
 		0.5f * sin(instanceTime * -2.0f)

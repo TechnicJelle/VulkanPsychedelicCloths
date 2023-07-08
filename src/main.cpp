@@ -169,6 +169,8 @@ struct UniformBufferObject {
 	alignas(8) glm::vec2 mouse;
 	alignas(8) glm::vec2 windowSize;
 
+	alignas(4) float plane_orbitSpeed;
+
 	alignas(4) float noise_scale;
 	alignas(4) float noise_intensity;
 	alignas(4) float noise_speed;
@@ -1320,16 +1322,18 @@ private:
 		glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
 
 		UniformBufferObject ubo {
-			.time = time * 0.5f,
+			.time = time,
 			.mouse = glm::vec2(mouseX, mouseY),
 			.windowSize = glm::vec2(windowWidth, windowHeight),
+
+			.plane_orbitSpeed = 0.5f,
 
 			.noise_scale = 2.5f,
 			.noise_intensity = 0.13f,
 			.noise_speed = 0.3f,
 
 			.checker_scale = glm::vec2(2.0f, 6.0f),
-			.checker_rotationSpeed = 2.0f,
+			.checker_rotationSpeed = 1.0f,
 
 			.radial_slices = 8,
 
