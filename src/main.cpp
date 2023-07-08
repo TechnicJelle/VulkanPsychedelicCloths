@@ -165,9 +165,23 @@ struct Vertex {
 
 struct UniformBufferObject {
 	//Alignment: https://vulkan-tutorial.com/en/Uniform_buffers/Descriptor_pool_and_sets#page_Alignment-requirements
-	alignas(16) glm::mat4 model;
-	alignas(16) glm::mat4 view;
-	alignas(16) glm::mat4 proj;
+	alignas(4) float time;
+	alignas(8) glm::vec2 mouse;
+	alignas(8) glm::vec2 windowSize;
+
+	alignas(4) float noise_scale;
+	alignas(4) float noise_intensity;
+	alignas(4) float noise_speed;
+
+	alignas(8) glm::vec2 checker_scale;
+	alignas(4) float checker_rotationSpeed;
+
+	alignas(4) int radial_slices;
+
+	alignas(4) float light_radiusFactor;
+	alignas(4) float light_falloff;
+	alignas(4) float light_strength;
+	alignas(4) float light_minimum;
 };
 
 class PsychedelicClothsApplication {
@@ -758,7 +772,7 @@ private:
 			.binding = 0,
 			.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
 			.descriptorCount = 1,
-			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT,
+			.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
 		};
 
 		VkDescriptorSetLayoutCreateInfo layoutInfo {
@@ -893,7 +907,7 @@ private:
 			.rasterizerDiscardEnable = VK_FALSE,
 			.polygonMode = pipeline == WIREFRAME ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL, //fill the whole area of the polygon with fragments, or just the edges
 			.cullMode = VK_CULL_MODE_BACK_BIT, //cull back faces
-			.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE, //vertex order is counter-clockwise for the front face (reversed due to the Y-flip in proj-matrix)
+			.frontFace = VK_FRONT_FACE_CLOCKWISE, //vertex order is counter-clockwise for the front face
 			.depthBiasEnable = VK_FALSE, //we don't need to change the depth values
 			.lineWidth = 1.0f,
 		};
@@ -1299,13 +1313,31 @@ private:
 		auto currentTime = std::chrono::high_resolution_clock::now();
 		float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-		UniformBufferObject ubo {
-			.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f)), //identity matrix, rotation angle, rotation axis
-			.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)), //eye pos, center pos, up axis
-			.proj = glm::perspective(glm::radians(45.0f), (float) swapChainExtent.width / (float) swapChainExtent.height, 0.1f, 10.0f),
-		};
+		double mouseX, mouseY;
+		glfwGetCursorPos(window, &mouseX, &mouseY);
 
-		ubo.proj[1][1] *= -1; //glm was designed for opengl, which inverts the clip Y, so we flip it back, cause vulkan works normally
+		int windowWidth = 0, windowHeight = 0;
+		glfwGetFramebufferSize(window, &windowWidth, &windowHeight);
+
+		UniformBufferObject ubo {
+			.time = time * 0.5f,
+			.mouse = glm::vec2(mouseX, mouseY),
+			.windowSize = glm::vec2(windowWidth, windowHeight),
+
+			.noise_scale = 2.5f,
+			.noise_intensity = 0.13f,
+			.noise_speed = 0.3f,
+
+			.checker_scale = glm::vec2(2.0f, 6.0f),
+			.checker_rotationSpeed = 2.0f,
+
+			.radial_slices = 8,
+
+			.light_radiusFactor = 0.5f,
+			.light_falloff = 0.7f,
+			.light_strength = 1.0f,
+			.light_minimum = 0.05f,
+		};
 
 		memcpy(uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 	}

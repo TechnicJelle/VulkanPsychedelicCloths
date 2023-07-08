@@ -1,9 +1,25 @@
 #version 450
 
+#define PI 3.1415926535897932384626433832795
+
 layout(binding = 0) uniform UniformBufferOvject {
-	mat4 model;
-	mat4 view;
-	mat4 proj;
+	float time;
+	vec2 mouse;
+	vec2 windowSize;
+
+	float noise_scale;
+	float noise_intensity;
+	float noise_speed;
+
+	vec2 checker_scale;
+	float checker_rotationSpeed;
+
+	int radial_slices;
+
+	float light_radiusFactor;
+	float light_falloff;
+	float light_strength;
+	float light_minimum;
 } ubo;
 
 layout(location = 0) in vec3 inPosition;
@@ -12,10 +28,20 @@ layout(location = 2) in vec2 inUV;
 
 layout(location = 0) out vec3 fragColour;
 layout(location = 1) out vec2 fragUV;
+layout(location = 2) out int fragInstanceIndex;
 
 void main() {
-	vec3 pos = inPosition + vec3(gl_InstanceIndex * 2 - 1, 0.0, 0.0);
-	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(pos, 1.0);
+	float instanceTime = ubo.time + gl_InstanceIndex * PI/2;
+	vec2 offset = vec2(
+		0.5f * cos(instanceTime * -2.0f),
+		0.5f * sin(instanceTime * -2.0f)
+	);
+
+	vec4 pos = vec4(inPosition, 1);
+	vec4 pos_timeOffset = vec4(offset, 0, 0);
+	gl_Position = pos + pos_timeOffset;
+
 	fragColour = inColour;
 	fragUV = inUV;
+	fragInstanceIndex = gl_InstanceIndex;
 }
