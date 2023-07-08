@@ -100,6 +100,10 @@ static std::vector<char> readFile(const std::string& filename) {
 	return buffer;
 }
 
+float mapVals(float val, float inLow, float inHigh, float outLow, float outHigh) {
+	return outLow + (outHigh - outLow) * ((val - inLow) / (inHigh - inLow));
+}
+
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
 	std::optional<uint32_t> presentFamily;
@@ -117,8 +121,9 @@ struct SwapChainSupportDetails {
 };
 
 struct Vertex {
-	glm::vec2 pos;
+	glm::vec3 pos;
 	glm::vec3 colour;
+	glm::vec2 uv;
 
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription {
@@ -130,13 +135,13 @@ struct Vertex {
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 2> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 2> attributeDescriptions {
+	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions {
 			{
 				{
 					.location = 0,
 					.binding = 0,
-					.format = VK_FORMAT_R32G32_SFLOAT,
+					.format = VK_FORMAT_R32G32B32_SFLOAT,
 					.offset = offsetof(Vertex, pos),
 				},
 				{
@@ -144,6 +149,12 @@ struct Vertex {
 					.binding = 0,
 					.format = VK_FORMAT_R32G32B32_SFLOAT,
 					.offset = offsetof(Vertex, colour),
+				},
+				{
+					.location = 2,
+					.binding = 0,
+					.format = VK_FORMAT_R32G32_SFLOAT,
+					.offset = offsetof(Vertex, uv),
 				},
 			}
 		};
@@ -163,6 +174,7 @@ class PsychedelicClothsApplication {
 public:
 	void run() {
 		initWindow();
+		initGeometry();
 		initVulkan();
 		mainLoop();
 		cleanup();
@@ -226,17 +238,8 @@ private:
 
 	MyPipeline currentPipeline = DEFAULT;
 
-	const std::vector<Vertex> vertices = {
-		{{-0.5f, -0.5f}, {1.0f, 0.0f, 0.0f}}, //top left
-		{{0.5f,  -0.5f}, {0.0f, 1.0f, 0.0f}}, //top right
-		{{0.5f,  0.5f},  {0.0f, 0.0f, 1.0f}}, //bottom right
-		{{-0.5f, 0.5f},  {1.0f, 1.0f, 1.0f}}, //bottom left
-	};
-
-	const std::vector<uint16_t> indices = {
-		0, 1, 2, //top right
-		2, 3, 0, //bottom left
-	};
+	std::vector<Vertex> vertices;
+	std::vector<uint16_t> indices;
 
 	void initWindow() {
 		glfwInit();
@@ -273,6 +276,87 @@ private:
 			default:
 				break;
 		}
+	}
+
+	void makePlane(const uint32_t dimensions = 2) {
+		assert(dimensions >= 2);
+		const bool debug = false;
+
+		const uint32_t numVertices = dimensions * dimensions;
+		vertices.resize(numVertices);
+
+		float min = -0.5f;
+		float max = 0.5f;
+
+		for (int i = 0; i < dimensions; i++) {
+			for (int j = 0; j < dimensions; j++) {
+				//calculate the position of the vertex
+				float x = mapVals(float(i), 0.0f, float(dimensions - 1), min, max);
+				float y = mapVals(float(j), 0.0f, float(dimensions - 1), min, max);
+
+				Vertex* v = &vertices[i * dimensions + j];
+
+				//set the position
+				v->pos.x = x;
+				v->pos.y = y;
+				v->pos.z = 0.0f;
+
+				//set the colour
+				v->colour.r = 0.0f;
+				v->colour.g = 0.0f;
+				v->colour.b = 0.0f;
+
+				//set the UV
+				v->uv.x = x + 0.5f;
+				v->uv.y = y + 0.5f;
+			}
+		}
+
+		if (debug) {
+			for (uint32_t i = 0; i < dimensions; i++) {
+				for (uint32_t j = 0; j < dimensions; j++) {
+					uint32_t index = i * dimensions + j;
+					printf("Vertex %i: %f, %f, %f\n", index, vertices[index].pos.x, vertices[index].pos.y, vertices[index].pos.z);
+				}
+			}
+		}
+
+		const uint32_t numIndices = (dimensions - 1) * (dimensions - 1) * 2 * 3;
+		indices.resize(numIndices);
+		int runner = 0;
+		for (uint32_t i = 0; i < dimensions - 1; i++) {
+			for (uint32_t j = 0; j < dimensions - 1; j++) {
+				//calculate the indices of the vertices
+				uint32_t v0 = i * dimensions + j;
+				uint32_t v1 = (i + 1) * dimensions + j;
+				uint32_t v2 = v1 + 1;
+				uint32_t v3 = v0 + 1;
+
+				//set the indices in clockwise order
+				indices[runner++] = v0;
+				indices[runner++] = v1;
+				indices[runner++] = v2;
+
+				indices[runner++] = v2;
+				indices[runner++] = v3;
+				indices[runner++] = v0;
+			}
+		}
+		assert(runner == numIndices);
+
+		if (debug) {
+			for (uint32_t i = 0; i < dimensions - 1; i++) {
+				for (uint32_t j = 0; j < dimensions - 1; j++) {
+					uint32_t quadIndex = (i * (dimensions - 1) + j) * 6;
+					printf("Quad %i (%i): %i, %i, %i\n", quadIndex / 6, quadIndex / 3, indices[quadIndex], indices[quadIndex + 1], indices[quadIndex + 2]);
+					printf("Quad %i (%i): %i, %i, %i\n", quadIndex / 6, quadIndex / 3 + 1, indices[quadIndex + 3], indices[quadIndex + 4], indices[quadIndex + 5]);
+				}
+			}
+		}
+	}
+
+	void initGeometry() {
+		makePlane(3);
 	}
 
 	void initVulkan() {
