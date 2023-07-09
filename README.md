@@ -205,7 +205,7 @@ I learnt this trick earlier while going through the book, here: https://vulkan-t
 ### Assignment Excellent
 For the other parts of the assignment, it was mostly enough to simply copy the shader code from my OpenGL assignment.\
 Though for the excellent, that did not end up being enough.\
-For some reason, the waving "cloth" did not wave properly. It seems to at first, but it did strange jumps and hops, which the OpenGL version most certainly did not do.\
+For some reason, the waving "cloth" did not wave properly. It seems to at first, but it did strange jumps and hops, which the OpenGL version most certainly did not do.
 
 ![vertices moving smoothly, but also jumping strangely sometimes](.github/readme_assets/devlog/vertex-noise-jumping.gif)
 
