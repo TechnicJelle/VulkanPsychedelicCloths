@@ -3,14 +3,16 @@ A recreation of my uni's OpenGL assignment in Vulkan.
 
 ![demonstration GIF](.github/readme_assets/demo.gif)
 
-## Controls:
+## Controls
 `1`: Switch to default view\
 `2`: Switch to wireframe view\
 `Mouse`: Shine light on the "cloths"
 
+## Table of Contents
 <!-- TOC -->
 * [Vulkan Psychedelic Cloths](#vulkan-psychedelic-cloths)
-  * [Controls:](#controls)
+  * [Controls](#controls)
+  * [Table of Contents](#table-of-contents)
   * [Building and Running](#building-and-running)
     * [Linux](#linux)
       * [Mint](#mint)
