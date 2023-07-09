@@ -15,7 +15,7 @@ endif ()
 
 set(CMAKE_CXX_FLAGS_RELEASE "-Os")
 
-find_package(Vulkan REQUIRED COMPONENTS glslc)
+find_package(Vulkan REQUIRED)
 
 find_package(glfw3 3.3 REQUIRED)
 
@@ -29,7 +29,7 @@ set(VERT_OUT ${CMAKE_BINARY_DIR}/shaders/vert.spv)
 add_custom_command(
 		OUTPUT ${VERT_OUT}
 		DEPENDS ${VERT_IN}
-		COMMAND glslc ${VERT_IN} -o ${VERT_OUT} -O
+		COMMAND glslangValidator --target-env vulkan1.0 -e main -o ${VERT_OUT} ${VERT_IN}
 )
 
 ## Fragment shader
@@ -39,7 +39,7 @@ set(FRAG_OUT ${CMAKE_BINARY_DIR}/shaders/frag.spv)
 add_custom_command(
 		OUTPUT ${FRAG_OUT}
 		DEPENDS ${FRAG_IN}
-		COMMAND glslc ${FRAG_IN} -o ${FRAG_OUT} -O
+		COMMAND glslangValidator --target-env vulkan1.0 -e main -o ${FRAG_OUT} ${FRAG_IN}
 )
 
 add_executable(
