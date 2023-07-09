@@ -1,4 +1,6 @@
 # Vulkan Psychedelic Cloths
+![1306 Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-1306-blue)
+
 A recreation of my uni's OpenGL assignment in Vulkan.
 
 ![demonstration GIF](.github/readme_assets/demo.gif)
