@@ -20,6 +20,7 @@ find_package(Vulkan REQUIRED COMPONENTS glslc)
 find_package(glfw3 3.3 REQUIRED)
 
 # Compile shaders
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/shaders/)
 # TODO: Reduce code duplication here
 ## Vertex shader
 set(VERT_IN ${CMAKE_CURRENT_SOURCE_DIR}/shaders/shader.vert)
