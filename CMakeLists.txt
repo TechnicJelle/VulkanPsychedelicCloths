@@ -1,7 +1,7 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22)
 project(VulkanPsychedelicCloths)
 
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 17)
 
 # If no build type provided, assume Release mode
 if (NOT CMAKE_BUILD_TYPE)
