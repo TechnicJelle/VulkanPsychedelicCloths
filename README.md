@@ -89,14 +89,14 @@ I thought it was possible to combine bit masks like that, but it turns out that 
 
 After this, it still wouldn't work, which was due to a dumb mistake I had made somewhere else:
 ```cpp
-struct QueueFamilyIndices {  
-	std::optional<uint32_t> graphicsFamily;  
-	std::optional<uint32_t> presentFamily;  
-	std::optional<uint32_t> transferFamily;  
-	  
-	bool isComplete() const {  
+struct QueueFamilyIndices {
+	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
+	std::optional<uint32_t> transferFamily;
+	
+	bool isComplete() const {
 		return graphicsFamily.has_value() && presentFamily.has_value();
-	}  
+	}
 };
 ```
 Can you spot it?
@@ -178,22 +178,22 @@ This helped me understand how to use multiple pipelines, after which it was rath
 
 The button presses are handled by GLFW, of course, so I had to expand the key callback function I described earlier to this:
 ```cpp
-static void keyCallback(GLFWwindow* window, int key, int scanCode, int action, int modifierKeys) {  
-	PsychedelicClothsApplication* app = (PsychedelicClothsApplication*) (glfwGetWindowUserPointer(window));  
-	if (action != GLFW_PRESS) return;  
-	switch (key) {  
-		case GLFW_KEY_ESCAPE:  
-			glfwSetWindowShouldClose(window, GLFW_TRUE);  
-			break;  
-		case GLFW_KEY_1:  
-			app->currentPipeline = DEFAULT;  
-			break;  
-		case GLFW_KEY_2:  
-			app->currentPipeline = WIREFRAME;  
-			break;  
-		default:  
-			break;  
-	}  
+static void keyCallback(GLFWwindow* window, int key, int scanCode, int action, int modifierKeys) {
+	PsychedelicClothsApplication* app = (PsychedelicClothsApplication*) (glfwGetWindowUserPointer(window));
+	if (action != GLFW_PRESS) return;
+	switch (key) {
+		case GLFW_KEY_ESCAPE:
+			glfwSetWindowShouldClose(window, GLFW_TRUE);
+			break;
+		case GLFW_KEY_1:
+			app->currentPipeline = DEFAULT;
+			break;
+		case GLFW_KEY_2:
+			app->currentPipeline = WIREFRAME;
+			break;
+		default:
+			break;
+	}
 }
 ```
 That first line of this function may look a little strange, so I'll explain it in a bit more detail:\
