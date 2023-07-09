@@ -2,7 +2,7 @@
 
 #define PI 3.1415926535897932384626433832795
 
-layout(binding = 0) uniform UniformBufferOvject {
+layout(binding = 0) uniform UniformBufferObject {
 	float time;
 	vec2 mouse;
 	vec2 windowSize;
