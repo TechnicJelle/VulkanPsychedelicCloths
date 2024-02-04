@@ -38,6 +38,10 @@
 #include <optional>
 #include <set>
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_vulkan.h"
+
 const uint32_t WIDTH = 800;
 const uint32_t HEIGHT = 600;
 
@@ -102,6 +106,15 @@ static std::vector<char> readFile(const std::string& filename) {
 
 float mapVals(float val, float inLow, float inHigh, float outLow, float outHigh) {
 	return outLow + (outHigh - outLow) * ((val - inLow) / (inHigh - inLow));
+}
+
+void imgui_check_vk_result(const VkResult err)
+{
+	if (err == 0)
+		return;
+	fprintf(stderr, "[Dear ImGui Vulkan] Error: VkResult = %d\n", err);
+	if (err < 0)
+		abort();
 }
 
 struct QueueFamilyIndices {
@@ -195,6 +208,7 @@ public:
 		initWindow();
 		initGeometry();
 		initVulkan();
+		initDearImGui();
 		mainLoop();
 		cleanup();
 	}
@@ -215,6 +229,7 @@ private:
 
 	VkSwapchainKHR swapChain;
 	std::vector<VkImage> swapChainImages;
+	uint32_t swapChainImageCount;
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
 	std::vector<VkImageView> swapChainImageViews;
@@ -400,10 +415,48 @@ private:
 		createSyncObjects();
 	}
 
+	void initDearImGui()
+	{
+		IMGUI_CHECKVERSION();
+
+		ImGui::CreateContext();
+		if (ImGui_ImplGlfw_InitForVulkan(window, true) == false)
+		{
+			throw std::runtime_error("failed to init ImGui glfw for vulkan!");
+		}
+
+		ImGui_ImplVulkan_InitInfo imguiVkInfo {
+			.Instance = instance,
+			.PhysicalDevice = physicalDevice,
+			.Device = device,
+			.QueueFamily = findQueueFamilies(physicalDevice).graphicsFamily.value(),
+			.Queue = graphicsQueue,
+			.PipelineCache = pipelineCache,
+			.DescriptorPool = descriptorPool,
+			.Subpass = 0, //?
+			.MinImageCount = swapChainImageCount,
+			.ImageCount = swapChainImageCount,
+			.MSAASamples = VK_SAMPLE_COUNT_1_BIT, //is the default
+			.Allocator = nullptr, //?
+			.CheckVkResultFn = imgui_check_vk_result,
+		};
+		if (ImGui_ImplVulkan_Init(&imguiVkInfo, renderPass) == false) {
+			throw std::runtime_error("failed to init ImGui Vulkan!");
+		}
+	}
+
 	void mainLoop() {
 		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
+
+			// ImGui_ImplGlfw_NewFrame();
+			// ImGui_ImplVulkan_NewFrame();
+			// ImGui::NewFrame();
+
 			drawFrame();
+
+			// ImGui::Render();
+			// ImGui_ImplVulkan_RenderDrawData(main_draw_data, commandbuffer);
 		}
 
 		if (vkDeviceWaitIdle(device) != VK_SUCCESS) {
@@ -423,7 +476,16 @@ private:
 		vkDestroySwapchainKHR(device, swapChain, nullptr);
 	}
 
+	void cleanupImGui()
+	{
+		ImGui_ImplVulkan_Shutdown();
+		ImGui_ImplGlfw_Shutdown();
+		ImGui::DestroyContext();
+	}
+
 	void cleanup() {
+		cleanupImGui();
+
 		cleanupSwapChain();
 
 		for (VkPipeline graphicsPipeline : graphicsPipelines) vkDestroyPipeline(device, graphicsPipeline, nullptr);
@@ -642,15 +704,15 @@ private:
 		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 		VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities);
 
-		uint32_t imageCount = swapChainSupport.capabilities.minImageCount + 1; //we ask for one more than the minimum, because we may sometimes have to wait on the driver to complete internal operations before we can acquire another image to render to.
-		if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) { //keep imageCount between 0 and maxImageCount (if imageCount is 0, there is no maximum)
-			imageCount = swapChainSupport.capabilities.maxImageCount;
+		swapChainImageCount = swapChainSupport.capabilities.minImageCount + 1; //we ask for one more than the minimum, because we may sometimes have to wait on the driver to complete internal operations before we can acquire another image to render to.
+		if (swapChainSupport.capabilities.maxImageCount > 0 && swapChainImageCount > swapChainSupport.capabilities.maxImageCount) { //keep imageCount between 0 and maxImageCount (if imageCount is 0, there is no maximum)
+			swapChainImageCount = swapChainSupport.capabilities.maxImageCount;
 		}
 
 		VkSwapchainCreateInfoKHR createInfo {
 			.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
 			.surface = surface,
-			.minImageCount = imageCount,
+			.minImageCount = swapChainImageCount,
 			.imageFormat = surfaceFormat.format,
 			.imageColorSpace = surfaceFormat.colorSpace,
 			.imageExtent = extent,
@@ -689,9 +751,9 @@ private:
 			throw std::runtime_error("failed to create swap chain!");
 		}
 
-		vkGetSwapchainImagesKHR(device, swapChain, &imageCount, nullptr);
-		swapChainImages.resize(imageCount);
-		vkGetSwapchainImagesKHR(device, swapChain, &imageCount, swapChainImages.data());
+		vkGetSwapchainImagesKHR(device, swapChain, &swapChainImageCount, nullptr);
+		swapChainImages.resize(swapChainImageCount);
+		vkGetSwapchainImagesKHR(device, swapChain, &swapChainImageCount, swapChainImages.data());
 
 		swapChainImageFormat = surfaceFormat.format;
 		swapChainExtent = extent;

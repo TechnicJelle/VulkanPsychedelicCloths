@@ -44,8 +44,25 @@ add_custom_command(
 
 file(GLOB sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
 
+# Dear ImGui
+set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui)
+include_directories(${IMGUI_DIR})
+include_directories(${IMGUI_DIR}/backends)
+
+set(IMGUI_SOURCES
+		${IMGUI_DIR}/imgui.cpp
+		${IMGUI_DIR}/imgui_draw.cpp
+		${IMGUI_DIR}/imgui_demo.cpp
+		${IMGUI_DIR}/imgui_tables.cpp
+		${IMGUI_DIR}/imgui_widgets.cpp
+		# Specific implementations:
+		${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+		${IMGUI_DIR}/backends/imgui_impl_vulkan.cpp
+)
+
 add_executable(${PROJECT_NAME}
 		${sources}
+		${IMGUI_SOURCES}
 		${VERT_OUT} ${FRAG_OUT}
 )
 
