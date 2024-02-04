@@ -42,10 +42,11 @@ add_custom_command(
 		COMMAND glslangValidator --target-env vulkan1.0 -e main -o ${FRAG_OUT} ${FRAG_IN}
 )
 
-add_executable(
-		${PROJECT_NAME} src/main.cpp
-		${VERT_OUT}
-		${FRAG_OUT}
+file(GLOB sources ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+
+add_executable(${PROJECT_NAME}
+		${sources}
+		${VERT_OUT} ${FRAG_OUT}
 )
 
 target_link_libraries(${PROJECT_NAME} Vulkan::Vulkan glfw)

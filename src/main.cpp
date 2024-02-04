@@ -406,7 +406,9 @@ private:
 			drawFrame();
 		}
 
-		vkDeviceWaitIdle(device);
+		if (vkDeviceWaitIdle(device) != VK_SUCCESS) {
+			throw std::runtime_error("failed to wait for the devidce to become idle!");
+		}
 	}
 
 	void cleanupSwapChain() {
