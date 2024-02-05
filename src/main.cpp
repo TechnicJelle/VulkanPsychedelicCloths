@@ -241,6 +241,8 @@ private:
 	VkPipelineCache pipelineCache;
 	std::vector<VkPipeline> graphicsPipelines;
 
+	QueueFamilyIndices queueFamilyIndices;
+
 	VkCommandPool graphicsCommandPool;
 	VkCommandPool transferCommandPool;
 
@@ -429,7 +431,7 @@ private:
 			.Instance = instance,
 			.PhysicalDevice = physicalDevice,
 			.Device = device,
-			.QueueFamily = findQueueFamilies(physicalDevice).graphicsFamily.value(),
+			.QueueFamily = queueFamilyIndices.graphicsFamily.value(),
 			.Queue = graphicsQueue,
 			.PipelineCache = pipelineCache,
 			.DescriptorPool = descriptorPool,
@@ -648,7 +650,7 @@ private:
 	}
 
 	void createLogicalDevice() {
-		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
+		queueFamilyIndices = findQueueFamilies(physicalDevice);
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
 		std::set<uint32_t> uniqueQueueFamilies = {
@@ -725,8 +727,6 @@ private:
 			.clipped = VK_TRUE, //we don't care about the colour of pixels that are obscured, because another window is in front of them, for example
 			.oldSwapchain = VK_NULL_HANDLE //used to recreate the swap chain, but we don't need to do that yet (resizing windows, for example)
 		};
-
-		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
 
 		if (queueFamilyIndices.graphicsFamily == queueFamilyIndices.presentFamily) {
 			uint32_t localIndices[] = {
@@ -1065,8 +1065,6 @@ private:
 	}
 
 	void createCommandPools() {
-		QueueFamilyIndices queueFamilyIndices = findQueueFamilies(physicalDevice);
-
 		//graphics pool
 		VkCommandPoolCreateInfo graphicsPoolInfo {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
