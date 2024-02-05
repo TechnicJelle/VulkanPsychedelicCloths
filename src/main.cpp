@@ -10,6 +10,7 @@
 #pragma ide diagnostic ignored "OCUnusedMacroInspection"
 
 // To ignore the warnings about the enableValidationLayers variable:
+// ReSharper disable CppDFAUnreachableCode
 #pragma ide diagnostic ignored "UnreachableCode"
 #pragma ide diagnostic ignored "Simplify"
 
@@ -245,6 +246,7 @@ private:
 
 	VkCommandPool graphicsCommandPool;
 	VkCommandPool transferCommandPool;
+	VkCommandPool imguiCommandPool;
 
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
@@ -256,9 +258,11 @@ private:
 	std::vector<void*> uniformBuffersMapped;
 
 	VkDescriptorPool descriptorPool;
+	VkDescriptorPool imguiDescriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
 	std::vector<VkCommandBuffer> commandBuffers;
+	std::vector<VkCommandBuffer> imguiCommandBuffers;
 
 	std::vector<VkSemaphore> imageAvailableSemaphores;
 	std::vector<VkSemaphore> renderFinishedSemaphores;
@@ -427,6 +431,12 @@ private:
 			throw std::runtime_error("failed to init ImGui glfw for vulkan!");
 		}
 
+		createImGuiDescriptorPool();
+		//createImGuiRenderPass();
+		createImGuiCommandPool();
+		createImGuiCommandBuffers();
+		//createImGuiFramebuffers()
+
 		ImGui_ImplVulkan_InitInfo imguiVkInfo {
 			.Instance = instance,
 			.PhysicalDevice = physicalDevice,
@@ -434,7 +444,7 @@ private:
 			.QueueFamily = queueFamilyIndices.graphicsFamily.value(),
 			.Queue = graphicsQueue,
 			.PipelineCache = pipelineCache,
-			.DescriptorPool = descriptorPool,
+			.DescriptorPool = imguiDescriptorPool,
 			.Subpass = 0, //?
 			.MinImageCount = swapChainImageCount,
 			.ImageCount = swapChainImageCount,
@@ -445,20 +455,21 @@ private:
 		if (ImGui_ImplVulkan_Init(&imguiVkInfo, renderPass) == false) {
 			throw std::runtime_error("failed to init ImGui Vulkan!");
 		}
+
+		//Upload Fonts?
 	}
 
 	void mainLoop() {
 		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 
-			// ImGui_ImplGlfw_NewFrame();
-			// ImGui_ImplVulkan_NewFrame();
-			// ImGui::NewFrame();
+			ImGui_ImplGlfw_NewFrame();
+			ImGui_ImplVulkan_NewFrame();
+			ImGui::NewFrame(); //TODO: Move into ImGuiStartFrame()
 
-			drawFrame();
+			ImGui::ShowDemoWindow();
 
-			// ImGui::Render();
-			// ImGui_ImplVulkan_RenderDrawData(main_draw_data, commandbuffer);
+			drawFrame(); //TODO: Split up into frameRender() and framePresent()
 		}
 
 		if (vkDeviceWaitIdle(device) != VK_SUCCESS) {
@@ -483,6 +494,9 @@ private:
 		ImGui_ImplVulkan_Shutdown();
 		ImGui_ImplGlfw_Shutdown();
 		ImGui::DestroyContext();
+
+		vkDestroyDescriptorPool(device, imguiDescriptorPool, nullptr);
+		vkDestroyCommandPool(device, imguiCommandPool, nullptr);
 	}
 
 	void cleanup() {
@@ -1088,6 +1102,19 @@ private:
 		}
 	}
 
+	void createImGuiCommandPool() {
+		VkCommandPoolCreateInfo poolInfo{
+			.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+			.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+			.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value(),
+		};
+
+		if (vkCreateCommandPool(device, &poolInfo, nullptr, &imguiCommandPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create imgui command pool!");
+		}
+	}
+
 	void createVertexBuffer() {
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -1157,6 +1184,27 @@ private:
 
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create descriptor pool!");
+		}
+	}
+
+	void createImGuiDescriptorPool() {
+		VkDescriptorPoolSize poolSizes[] = {
+			{
+				.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+				.descriptorCount = 1,
+			},
+		};
+
+		VkDescriptorPoolCreateInfo poolInfo {
+			.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+			.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+			.maxSets = 1,
+			.poolSizeCount = 1,
+			.pPoolSizes = poolSizes,
+		};
+
+		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &imguiDescriptorPool) != VK_SUCCESS) {
+			throw std::runtime_error("failed to create imgui descriptor pool!");
 		}
 	}
 
@@ -1290,6 +1338,21 @@ private:
 		}
 	}
 
+	void createImGuiCommandBuffers() {
+		imguiCommandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+
+		VkCommandBufferAllocateInfo allocInfo {
+			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+			.commandPool = imguiCommandPool,
+			.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+			.commandBufferCount = (uint32_t) imguiCommandBuffers.size(),
+		};
+
+		if (vkAllocateCommandBuffers(device, &allocInfo, imguiCommandBuffers.data()) != VK_SUCCESS) {
+			throw std::runtime_error("failed to allocate imgui command buffers!");
+		}
+	}
+
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex) {
 		VkCommandBufferBeginInfo beginInfo {
 			.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -1343,6 +1406,13 @@ private:
 		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[currentFrame], 0, nullptr);
 
 		vkCmdDrawIndexed(commandBuffer, indices.size(), 2, 0, 0, 0);
+
+		//TODO: Move into ImGuiEndFrame().
+		// Preferably call within same scope as ImGuiStartFrame(), which should
+		// be facilitated by the split into frameRender() and framePresent().
+		ImGui::Render();
+		ImDrawData* main_draw_data = ImGui::GetDrawData();
+		ImGui_ImplVulkan_RenderDrawData(main_draw_data, commandBuffer);
 
 		vkCmdEndRenderPass(commandBuffer);
 
