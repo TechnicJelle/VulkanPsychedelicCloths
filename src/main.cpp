@@ -488,7 +488,7 @@ private:
 			.Allocator = nullptr, //?
 			.CheckVkResultFn = imgui_check_vk_result,
 		};
-		if (ImGui_ImplVulkan_Init(&imguiVkInfo, renderPass) == false) {
+		if (ImGui_ImplVulkan_Init(&imguiVkInfo, imguiRenderPass) == false) {
 			throw std::runtime_error("failed to init ImGui Vulkan!");
 		}
 
