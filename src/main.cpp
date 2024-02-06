@@ -291,6 +291,19 @@ private:
 		WIREFRAME = 1,
 	};
 
+	std::array<std::string, 2> MyPipelineItems = {"Default", "Wireframe"};
+
+	[[nodiscard]] std::string getCurrentPipelineAsString() const {
+		return MyPipelineItems[currentPipeline];
+	}
+
+	[[nodiscard]] std::optional<MyPipeline> getPipelineFromString(const std::string& str) const {
+		for (int i = 0; i < MyPipelineItems.size(); i++) {
+			if(MyPipelineItems[i] == str) return std::make_optional(MyPipeline(i));
+		}
+		return std::nullopt;
+	}
+
 	MyPipeline currentPipeline = DEFAULT;
 
 	std::vector<Vertex> vertices;
@@ -480,12 +493,36 @@ private:
 		ImGui::NewFrame();
 	}
 
+	void ImGuiDebugMenu() {
+		ImGui::Begin("Debug");
+
+		/* Pipeline Dropdown */ {
+			const std::string currentPipelineString = getCurrentPipelineAsString();
+			if (ImGui::BeginCombo("Pipeline", currentPipelineString.c_str())) {
+				for (const auto& item : MyPipelineItems) {
+					const bool isSelected = currentPipelineString == item;
+
+					if (ImGui::Selectable(item.c_str(), isSelected)) {
+						if (auto v = getPipelineFromString(item); v.has_value())
+							currentPipeline = v.value();
+					}
+
+					if (isSelected) ImGui::SetItemDefaultFocus();
+				}
+				ImGui::EndCombo();
+			}
+		}
+
+		ImGui::End();
+	}
+
 	void mainLoop() {
 		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 
 			ImGuiStartFrame();
 			ImGui::ShowDemoWindow();
+			ImGuiDebugMenu();
 
 			drawFrame(); //TODO: Split up into frameRender() and framePresent()
 		}
