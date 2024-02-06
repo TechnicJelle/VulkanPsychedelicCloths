@@ -460,7 +460,10 @@ private:
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Panels to be Docked to Eachother
 
-		ImGui::StyleColorsClassic();
+		//TODO: Fix the `RenderPasses incompatibility` issue that this ↓ creates when dragging a panel out of the main window
+		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Allow Panels to be Dragged Out of the Main Window
+
+		ImGui::StyleColorsDark();
 
 		if (ImGui_ImplGlfw_InitForVulkan(window, true) == false)
 		{
@@ -1599,6 +1602,7 @@ void recordImGuiCommandBuffer(uint32_t imageIndex) {
 
 		// Update and Render additional Platform Windows
 		if (const ImGuiIO& io = ImGui::GetIO(); io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+			//Only do this when the feature is enabled; don't need to otherwise
 			ImGui::UpdatePlatformWindows();
 			ImGui::RenderPlatformWindowsDefault();
 		}
