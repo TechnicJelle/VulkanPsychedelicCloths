@@ -454,6 +454,14 @@ private:
 		IMGUI_CHECKVERSION();
 
 		ImGui::CreateContext();
+
+		ImGuiIO& io = ImGui::GetIO();
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+		io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Panels to be Docked to Eachother
+
+		ImGui::StyleColorsClassic();
+
 		if (ImGui_ImplGlfw_InitForVulkan(window, true) == false)
 		{
 			throw std::runtime_error("failed to init ImGui glfw for vulkan!");
@@ -1588,7 +1596,13 @@ void recordImGuiCommandBuffer(uint32_t imageIndex) {
 		checkVkSuccess(
 			vkEndCommandBuffer(imguiCommandBuffers[currentFrame]),
 			"failed to record imgui command buffer");
-	}
+
+		// Update and Render additional Platform Windows
+		if (const ImGuiIO& io = ImGui::GetIO(); io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable) {
+			ImGui::UpdatePlatformWindows();
+			ImGui::RenderPlatformWindowsDefault();
+		}
+}
 
 	void createSyncObjects() {
 		imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
