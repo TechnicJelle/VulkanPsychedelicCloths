@@ -474,14 +474,17 @@ private:
 		//Upload Fonts?
 	}
 
+	static void ImGuiStartFrame() {
+		ImGui_ImplGlfw_NewFrame();
+		ImGui_ImplVulkan_NewFrame();
+		ImGui::NewFrame();
+	}
+
 	void mainLoop() {
 		while (!glfwWindowShouldClose(window)) {
 			glfwPollEvents();
 
-			ImGui_ImplGlfw_NewFrame();
-			ImGui_ImplVulkan_NewFrame();
-			ImGui::NewFrame(); //TODO: Move into ImGuiStartFrame()
-
+			ImGuiStartFrame();
 			ImGui::ShowDemoWindow();
 
 			drawFrame(); //TODO: Split up into frameRender() and framePresent()
