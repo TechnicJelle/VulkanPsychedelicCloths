@@ -1,12 +1,13 @@
 # Vulkan Psychedelic Cloths
-![1306 Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-1306-blue)
+![1975 Lines of Code](https://img.shields.io/badge/Lines%20of%20Code-1975-blue)
 
-A recreation of [my uni's OpenGL assignment](./3D%20Rendering%20Assignment.md) in Vulkan.
+A recreation of [my uni's OpenGL assignment](./3D%20Rendering%20Assignment.md) in Vulkan, but also with Dear ImGui.
 
 ![demonstration GIF](.github/readme_assets/demo.gif)
 
+Dear ImGui:
 [![demonstration with Dear ImGui](.github/readme_assets/dear-imgui-demo.gif)](.github/readme_assets/dear-imgui-demo.mp4)
-( ↑ Click for better quality)
+_( ↑ Click for better quality)_
 
 ## Controls
 `1`: Switch to default view\
