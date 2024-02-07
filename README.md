@@ -5,8 +5,8 @@ A recreation of [my uni's OpenGL assignment](./3D%20Rendering%20Assignment.md) i
 
 ![demonstration GIF](.github/readme_assets/demo.gif)
 
-Dear ImGui:
-[![demonstration with Dear ImGui](.github/readme_assets/dear-imgui-demo.gif)](.github/readme_assets/dear-imgui-demo.mp4)
+Dear ImGui:  
+[![demonstration with Dear ImGui](.github/readme_assets/dear-imgui-demo.gif)](.github/readme_assets/dear-imgui-demo.mp4)  
 _( ↑ Click for better quality)_
 
 ## Controls
