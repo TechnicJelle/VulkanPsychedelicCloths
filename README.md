@@ -277,9 +277,9 @@ After that, I read the official examples and documentation
 - https://github.com/ocornut/imgui/blob/master/docs/EXAMPLES.md
 
 ### Running some demos and playing around with them
-Aside from the desktop GLFW+Vulkan implementation of Dear ImGui, I also tried out the Android+OpenGL3 version on my
-phone, and it worked seamlessly, after a little bit of fiddling with the build. It's really cool to see Dear ImGui
-working just as well on my phone as it does on my computer!
+Aside from the desktop GLFW+Vulkan implementation of Dear ImGui, I also tried out the Android+OpenGL3 version on my phone.  
+It worked seamlessly after only a little bit of fiddling with the build!  
+It's really cool to see Dear ImGui working just as well on my phone as it does on my computer!
 
 I'm going to be following the Getting Started guide.
 
@@ -293,9 +293,9 @@ include_directories(${IMGUI_DIR} ${IMGUI_DIR}/backends ..)
 
 from the [example CMake file](https://github.com/ocornut/imgui/blob/f50ddc431e3b8840036e88abc4c3cf74500aa12b/examples/example_glfw_vulkan/CMakeLists.txt#L27-L29).
 
-This didn't immediately work of course, so I had to adapted it a bit, which ended up becoming this:
+This didn't immediately work of course, so I had to adapt it a bit, which ended up becoming this:
 
-```cmake  
+```cmake
 set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps/imgui)
 include_directories(${IMGUI_DIR})
 include_directories(${IMGUI_DIR}/backends)
@@ -312,7 +312,7 @@ After that, I was able to `#include` headers into my `main.cpp` file:
 However, when actually typing any Dear ImGui code and trying to run it, it breaks.
 
 After inspecting the example even further, I found out that, while I was including the header files, I wasn't compiling
-and linking the accompanying cpp files.\
+and linking the accompanying cpp files.  
 So I had to add those, too:
 
 ```cmake
@@ -340,11 +340,14 @@ Most of it are already normal member variables of my game class, but some of the
 once, locally, in some other function, so I have to make those member variables, too.
 I'm taking heavy inspiration from their [GLFW+Vulkan](https://github.com/ocornut/imgui/blob/f50ddc431e3b8840036e88abc4c3cf74500aa12b/examples/example_glfw_vulkan/main.cpp#L427-L443) example, too.
 
-After successful(?) initialisation, it also needs to be deinitialised/cleaned up.
+After successful initialisation, it also needs to be deinitialised/cleaned up.
+
 Luckily, that ended up being really easy.
-So now Dear ImGui is properly(?) being initialised and cleaned up.
+So now Dear ImGui is properly being initialised and cleaned up.
 This is where I'll stop for today.
-Here's exactly what I did today: https://github.com/TechnicJelle/VulkanPsychedelicCloths/commit/907fe1c45102c3d9d028ec65ab0d31c46d09fc3c
+
+Here's exactly what I did today:
+https://github.com/TechnicJelle/VulkanPsychedelicCloths/commit/907fe1c45102c3d9d028ec65ab0d31c46d09fc3c
 
 ### Getting the demo window to show up
 It's a new day today, and I'm full of new energy to continue tackling this task!
@@ -359,7 +362,8 @@ However, when I do what the example project does, I get this error:
 - (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-VkDescriptorSetAllocateInfo-apiVersion-07895)
 ```
 
-After a bit of googling, I found a GitHub issue of someone in the same situation as I am: https://github.com/ocornut/imgui/issues/5085  
+After a bit of googling, I found a GitHub issue of someone in the same situation as I am:
+https://github.com/ocornut/imgui/issues/5085
 They managed to fix their problem, so I am confident that I will also be able to!
 They also posted the solution they found, and even the whole source code of their project!
 Of course, I cloned it to have a closer look at how they do things, and I'm learning a lot from it!
@@ -403,19 +407,19 @@ aspect is missing in all these frameworks, but they still call their simple drop
 
 Even though this isn't a post about Dear ImGui, but another immediate mode UI library, this told me that the term I'm
 used to, "dropdown", isn't what I should be looking for.  
-And indeed, when I looked for "Dear ImGui ComboBox" instead, I found what I was looking for: a nice example to learn
-from: https://github.com/ocornut/imgui/issues/1658  
+And indeed, when I looked for "Dear ImGui ComboBox" instead, I found what I was looking for: a nice example to learn from:
+https://github.com/ocornut/imgui/issues/1658  
 Now I just need to adapt this example to my own situation.
 
 With some funky C++ code, I was finally able to loop over the enum that keeps track of which pipeline is being used, to
 add dropdown labels for all the options. And by comparing the strings, I am able to detect which option is clicked, and
-then I set the pipeline to the selected option.  
+then I set the pipeline to the selected option.
 https://github.com/TechnicJelle/VulkanPsychedelicCloths/commit/1e8e66e90fb3bec55be8d59080ace76952877c61
 
 ### Styling
-Up till now, I have used all the default options of Dear ImGui, but by setting a few flags, I should be able to enable
-some extra features, like keyboard inputs (so you can navigate through the menus with only your keyboard, instead of
-with the mouse), and the special docking branch, which allows you to drag panels out of the main window!
+Up till now, I have only used the default options of Dear ImGui, but by setting a few flags, I should be able to enable some extra features!  
+Like keyboard inputs, so you can navigate through the menus with only your keyboard, instead of with the mouse.  
+And the special docking branch, which allows you to drag panels out of the main window!
 
 So I started with enabling these flags:
 
@@ -453,20 +457,23 @@ Vulkan started erroring like crazy:
 - (https://www.khronos.org/registry/vulkan/specs/1.3-extensions/html/vkspec.html#VUID-vkCmdDrawIndexed-renderPass-02684)
 ```
 
-Time to debug!  
-Of course, I started by googling the error, and I found someone with the same issue! Even specifically also using Dear
-ImGui! https://github.com/ocornut/imgui/issues/3522
+Time to debug!
+
+Of course, I started by googling the error, and I found someone with the same issue!
+Even specifically also using Dear ImGui! https://github.com/ocornut/imgui/issues/3522
 
 This is a very tricky issue, even though it's so well-documented. It has to do with the Pipeline that Dear ImGui uses,
 which works for the normal situation of rendering in the same window, but it does not work on other windows.  
 The underlying problem is that I request a surface format of type `VK_FORMAT_B8G8R8A8_SRGB` from Vulkan to draw my stuff
 on, but Dear ImGui's separate windows only work on any of these:  
 `{ VK_FORMAT_B8G8R8A8_UNORM, VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_B8G8R8_UNORM, VK_FORMAT_R8G8B8_UNORM };`.  
-I use the SRGB format, because it is the best one for visual applications, according to the [Vulkan Tutorial](https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain#page_Surface-format).  
-I am currently diving through Dear ImGui's source code to figure out the best way for me to proceed with this...
+I use the SRGB format, because it is the best one for visual applications, according to the
+[Vulkan Tutorial](https://vulkan-tutorial.com/Drawing_a_triangle/Presentation/Swap_chain#page_Surface-format).  
+I am currently diving through Dear ImGui's source code to figure out the best way for me to proceed. with this...
 
 After even more time of looking into how and why it works in the example project, I finally discovered a discrepancy.
-In the version of Dear ImGui I am currently using ([v1.90.1-docking](https://github.com/ocornut/imgui/releases/tag/v1.90.1-docking))
+In the version of Dear ImGui I am currently using
+([v1.90.1-docking](https://github.com/ocornut/imgui/releases/tag/v1.90.1-docking))
 there is this line of code in the Dear ImGui source code:
 
 ```cpp
@@ -478,8 +485,8 @@ there is this line of code in the Dear ImGui source code:
 This line of _commented out_, here.
 However!
 
-When I look at the example project that I have cloned, which is not using that same version (because I forgot to switch
-back to that previous version on this clone), that line of code looks like this:
+When I look at the example project that I have cloned, which is not using that same version
+(because I forgot to switch back to that previous version on this clone), that line of code looks like this:
 
 ```cpp
 ImGui_ImplVulkan_CreatePipeline(v->Device, v->Allocator, v->PipelineCache, bd->RenderPass, v->MSAASamples, &bd->Pipeline, bd->Subpass);
@@ -487,8 +494,8 @@ ImGui_ImplVulkan_CreatePipeline(v->Device, v->Allocator, v->PipelineCache, bd->R
 
 As you can see, _it is not commented out!_
 
-I have a very sneaking suspicion that updating the version of Dear ImGui I am using in my own project will fix this. I'm
-about to find out, and I _will_ curse very loudly if it does.
+I have a very sneaking suspicion that updating the version of Dear ImGui I am using in my own project will fix this.
+I'm about to find out, and I _will_ curse very loudly if it does.
 
 ...It did not fix the issue.  
 Honestly, I'm not sure if I'm happier with this result than if it had worked.
@@ -497,6 +504,8 @@ Not now that it doesn't work, I'm _also_ mad that it still doesn't work!
 There's no winning with this...
 
 I must still be doing something wrong somewhere, but I just can't see where!
+
+...
 
 Aha. I have been fooled. The example _does_ also have the same issue! It's just hidden, because debug mode wasn't
 properly on!
@@ -508,7 +517,7 @@ same function.
 It is still commented out, even on the most recent commit.
 
 When I uncomment it, it works great.
-I found an open issue from about half a year ago on GitHub that asks the question about why it's still uncommented.
+I found an open issue from about half a year ago on GitHub that asks about why it's still commented.
 I've added my findings to it in a comment: https://github.com/ocornut/imgui/issues/6515#issuecomment-1930917091
 
 It is now very late and I have basically achieved what I wanted, anyway, so I'll be leaving this project here.
