@@ -461,6 +461,7 @@ private:
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Panels to be Docked to Eachother
 
 		//TODO: Fix the `RenderPasses incompatibility` issue that this ↓ creates when dragging a panel out of the main window
+		// https://github.com/ocornut/imgui/issues/6515#issuecomment-1930917091
 		io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Allow Panels to be Dragged Out of the Main Window
 
 		ImGui::StyleColorsDark();
