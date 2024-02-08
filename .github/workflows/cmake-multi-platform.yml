@@ -61,12 +61,16 @@ jobs:
       run: |
         sudo apt update && sudo apt upgrade
         sudo apt install git cmake g++ vulkan-tools libvulkan-dev vulkan-validationlayers-dev spirv-tools glslang-tools libglm-dev libglfw3-dev
+        
+    - name: Add MSBuild to PATH
+      if: runner.os == 'windows'
+      uses: microsoft/setup-msbuild@v1.3.1
 
     - name: Install Windows dependencies
       shell: cmd
       if: runner.os == 'windows'
       run: |
-        echo "WIP"
+        choco install vulkan-sdk glfw3
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory. `CMAKE_BUILD_TYPE` is only required if you are using a single-configuration generator such as make.
