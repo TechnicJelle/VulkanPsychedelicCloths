@@ -74,7 +74,7 @@ jobs:
       shell: cmd
       if: runner.os == 'windows'
       run: |
-        winget install -e --id KhronosGroup.VulkanSDK
+        winget install -e --id KhronosGroup.VulkanSDK --accept-package-agreements --accept-source-agreements --disable-interactivity
         choco install glfw3
 
     - name: Configure CMake
