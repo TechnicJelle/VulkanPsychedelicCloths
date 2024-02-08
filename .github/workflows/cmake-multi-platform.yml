@@ -55,26 +55,29 @@ jobs:
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
 
-    - name: Install Linux dependencies
+    - name: Linux- Install dependencies
       shell: bash
       if: runner.os == 'linux'
       run: |
         sudo apt update && sudo apt upgrade
         sudo apt install git cmake g++ vulkan-tools libvulkan-dev vulkan-validationlayers-dev spirv-tools glslang-tools libglm-dev libglfw3-dev
 
-    - name: Install WinGet
+    - name: Windows- Install WinGet
       if: runner.os == 'windows'
       uses: Cyberboss/install-winget@v1
       
-    - name: Add MSBuild to PATH
+    - name: Windoes- Add MSBuild to PATH
       if: runner.os == 'windows'
       uses: microsoft/setup-msbuild@v1.3.1
 
-    - name: Install Windows dependencies
+    - name: Windows- Install Vulkan SDK
+      if: runner.os == 'windows'
+      uses: humbletim/install-vulkan-sdk@v1.1.1
+
+    - name: Windows- Install dependencies
       shell: cmd
       if: runner.os == 'windows'
       run: |
-        winget install -e --id KhronosGroup.VulkanSDK --accept-package-agreements --accept-source-agreements --disable-interactivity
         choco install glfw3
 
     - name: Configure CMake
